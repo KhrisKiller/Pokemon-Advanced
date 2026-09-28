@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TimeConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/core/time/time_config.gd" id="1_time"]
+
+[resource]
+script = ExtResource("1_time")
+real_seconds_per_game_minute = 0.7
+day_start_hour = 6
+day_end_hour = 26
+days_per_season = 28
+season_ids = Array[StringName]([&"spring", &"summer", &"autumn", &"winter"])
+season_names = PackedStringArray("Spring", "Summer", "Autumn", "Winter")
+weekday_names = PackedStringArray("Moonday", "Tideday", "Rootday", "Emberday", "Galeday", "Starday", "Restday")
+display_step_minutes = 10
