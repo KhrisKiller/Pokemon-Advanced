@@ -3,8 +3,12 @@ extends Node
 ## Entry scene. Loads the start map, spawns the player, binds the HUD, and owns the
 ## day-transition flow (sleep or curfew → next morning).
 ##
-## The day transition is the single place where end-of-day work happens. Later phases add,
-## in this order: crop growth, world tick, NPC schedule reset, auto-save (see TECHNICAL_DESIGN.md §6.1).
+## Also the save provider for the "player" section (current map, position, facing). On start it
+## continues from the save slot if one exists; it auto-saves at the end of every day transition.
+##
+## The day transition is the single place where end-of-day work happens. Later phases add, in
+## this order: crop growth, world tick, NPC schedule reset — all before the auto-save
+## (see TECHNICAL_DESIGN.md §6.1).
 
 const TRANSITION_MODAL := &"day_transition"
 const REASON_SLEPT := &"slept"
@@ -15,6 +19,9 @@ const REASON_EXHAUSTED := &"exhausted"
 @export var start_spawn: StringName = &"Default"
 ## Seconds for each half of the fade.
 @export var fade_duration: float = 0.6
+@export var save_slot: int = 1
+## Continue from `save_slot` on start if a save exists.
+@export var load_save_on_start: bool = true
 
 var current_map: WorldMap
 var player: Player
@@ -28,6 +35,17 @@ func _ready() -> void:
 	load_map(start_map, start_spawn)
 	EventBus.sleep_requested.connect(_on_sleep_requested)
 	Clock.curfew_reached.connect(_on_curfew_reached)
+	# Main is the composition root of a play session, so it decides what gets saved.
+	# Sections load in this order: time, world, then the player (which may change the map).
+	for provider: Object in [Clock, WorldState, self]:
+		SaveService.register(provider)
+	if load_save_on_start and SaveService.has_save(save_slot):
+		SaveService.load_game(save_slot)
+
+
+func _exit_tree() -> void:
+	for provider: Object in [Clock, WorldState, self]:
+		SaveService.unregister(provider)
 
 
 func load_map(map_scene: PackedScene, spawn_id: StringName) -> void:
@@ -60,25 +78,31 @@ func run_day_transition(reason: StringName) -> void:
 	await hud.fade_out(fade_duration)
 
 	Clock.end_day()
-	# Future hooks, in order: farming growth, world tick, NPC schedules, auto-save.
+	# Future hooks, in order: farming growth, world tick, NPC schedules — then the auto-save.
 	if reason == REASON_EXHAUSTED:
 		player.global_position = current_map.get_spawn_position(start_spawn)
 		player.camera.reset_smoothing()
 	player.set_facing(Vector2.DOWN)
+	var saved := SaveService.save_game(save_slot) == OK
 
 	await hud.fade_in(fade_duration)
 	Clock.release_pause(TRANSITION_MODAL)
 	EventBus.modal_closed.emit(TRANSITION_MODAL)
 	_transitioning = false
 	EventBus.day_transition_finished.emit(reason)
-	EventBus.dialogue_requested.emit(_wake_up_lines(reason))
+	EventBus.dialogue_requested.emit(_wake_up_lines(reason, saved))
 
 
-func _wake_up_lines(reason: StringName) -> PackedStringArray:
-	var today := "It's %s." % Clock.time.format_date()
+func _wake_up_lines(reason: StringName, saved: bool) -> PackedStringArray:
+	var lines := PackedStringArray()
 	if reason == REASON_EXHAUSTED:
-		return PackedStringArray(["You collapsed from exhaustion and somehow made it home.", today])
-	return PackedStringArray(["You slept well.", today])
+		lines.append("You collapsed from exhaustion and somehow made it home.")
+	else:
+		lines.append("You slept well.")
+	lines.append("It's %s." % Clock.time.format_date())
+	if saved:
+		lines.append("(Game saved.)")
+	return lines
 
 
 func _on_sleep_requested(_source: Node) -> void:
@@ -90,6 +114,51 @@ func _on_curfew_reached() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if OS.is_debug_build() and event.is_action_pressed(&"debug_skip_hour") and not _transitioning:
+	if not OS.is_debug_build() or _transitioning:
+		return
+	if event.is_action_pressed(&"debug_skip_hour"):
 		Clock.advance_minutes(60)
-		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"debug_quicksave"):
+		var ok := SaveService.save_game(save_slot) == OK
+		EventBus.dialogue_requested.emit(PackedStringArray(["(Debug) Game saved." if ok else "(Debug) Save failed."]))
+	elif event.is_action_pressed(&"debug_quickload"):
+		if SaveService.load_game(save_slot) != OK:
+			EventBus.dialogue_requested.emit(PackedStringArray(["(Debug) No save to load."]))
+	else:
+		return
+	get_viewport().set_input_as_handled()
+
+
+# --- persistence (Saveable contract, section "player") ---------------------------------------
+
+func get_save_id() -> StringName:
+	return &"player"
+
+
+func to_save_data() -> Dictionary:
+	return {
+		"version": 1,
+		"map_id": String(current_map.map_id),
+		"position": [player.global_position.x, player.global_position.y],
+		"facing": [player.facing.x, player.facing.y],
+	}
+
+
+func load_save_data(data: Dictionary) -> void:
+	var map_id := StringName(str(data.get("map_id", "")))
+	if data.is_empty() or map_id != current_map.map_id:
+		if not data.is_empty():
+			push_warning("Saved map '%s' is not available; starting at the default spawn." % map_id)
+		player.global_position = current_map.get_spawn_position(start_spawn)
+		player.set_facing(Vector2.DOWN)
+	else:
+		player.global_position = _to_vector2(data.get("position"), current_map.get_spawn_position(start_spawn))
+		player.set_facing(_to_vector2(data.get("facing"), Vector2.DOWN).round())
+	player.velocity = Vector2.ZERO
+	player.camera.reset_smoothing()
+
+
+static func _to_vector2(value: Variant, fallback: Vector2) -> Vector2:
+	if typeof(value) == TYPE_ARRAY and value.size() == 2:
+		return Vector2(float(value[0]), float(value[1]))
+	return fallback

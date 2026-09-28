@@ -3,9 +3,11 @@ extends Node
 ##   godot --headless --path . res://tests/test_runner.tscn [-- --filter=<substring>]
 ## Runs every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd`.
 ## A test fails on a failed assertion OR on any engine/script error logged while it runs.
+## Isolation: saves go to `user://test_saves` (wiped before every test) and WorldState is reset.
 ## Exits with code 0 when everything passes, 1 otherwise.
 
 const TEST_DIRS: Array[String] = ["res://tests/unit", "res://tests/integration"]
+const TEST_SAVE_DIR := "user://test_saves"
 
 
 class ErrorCollector:
@@ -35,6 +37,7 @@ var _collector := ErrorCollector.new()
 
 
 func _ready() -> void:
+	SaveService.save_dir = TEST_SAVE_DIR
 	OS.add_logger(_collector)
 	await get_tree().process_frame
 	var exit_code: int = await _run_all()
@@ -81,6 +84,9 @@ func _run_test(script: Script, method: String) -> PackedStringArray:
 	add_child(container)
 	test.tree = get_tree()
 	test.root = container
+	SaveService.save_dir = TEST_SAVE_DIR
+	SaveService.delete_all_saves()
+	WorldState.reset()
 	_collector.take()
 
 	await test.before_each()
