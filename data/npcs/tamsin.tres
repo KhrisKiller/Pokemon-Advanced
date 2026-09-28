@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="NpcData" format=3]
+
+[ext_resource type="Script" path="res://game/characters/npc/npc_data.gd" id="1_data"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/npc_tamsin.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_data")
+id = &"tamsin"
+display_name = "Tamsin"
+sprite = ExtResource("2_tex")
+first_meeting_lines = PackedStringArray("Ah — you must be the new tenant at Wrenfield.", "I'm Tamsin, the Reeve. Whatever the vale needs tends to land on my desk.", "Settle in. We'll talk properly soon.")
+repeat_lines = PackedStringArray("Roads treating you well?")

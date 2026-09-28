@@ -52,6 +52,8 @@ commit `.godot/`.
 | `game/core/interaction/` | `Interactable`, `InteractionProbe` |
 | `game/main/` | Entry scene; spawns map + player; owns the day-transition flow |
 | `game/characters/player/` | `Player` controller + camera |
+| `game/characters/npc/` | `NpcData` resource, `Npc` interactable (placeholder NPCs) |
+| `data/npcs/` | One `NpcData` per NPC |
 | `game/world/` | `WorldMap`, `MapInfo`/`MapCatalog`, `MapTransition`, `DayNightTint`, maps, props, tileset |
 | `game/core/save/` | `SaveService` (autoload), `SaveFormat`, `SaveMigrations` |
 | `game/core/world_state.gd` | `WorldState` autoload: flags, discovered locations |

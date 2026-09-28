@@ -53,8 +53,10 @@ func _run() -> void:
 	_main.player.camera.reset_smoothing()
 	await _frames(10)
 	await _shot("06_village_plaza")
+	await _talk_to("Tamsin", "06b_talk_tamsin")
 	await _travel(&"forest", &"from_farm")
 	await _shot("07_forest_arrival")
+	await _talk_to("Odile", "07b_talk_odile")
 	_main.player.global_position = Vector2(46 * 16, 12 * 16)
 	_main.player.camera.reset_smoothing()
 	await _frames(10)
@@ -63,6 +65,18 @@ func _run() -> void:
 	_set_time(23 * 60 + 30)
 	await _frames(5)
 	await _shot("09_forest_night")
+
+
+func _talk_to(npc_name: String, shot_name: String) -> void:
+	var npc := _main.current_map.entities.get_node(npc_name) as Node2D
+	_main.player.global_position = npc.global_position + Vector2(18, 0)
+	_main.player.set_facing(Vector2.LEFT)
+	_main.player.camera.reset_smoothing()
+	await _frames(10)
+	_main.player.try_interact()
+	await _frames(5)
+	await _shot(shot_name)
+	_main.hud.message_box.close()
 
 
 func _travel(map_id: StringName, spawn_id: StringName) -> void:

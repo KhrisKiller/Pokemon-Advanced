@@ -85,12 +85,12 @@ can never become a duplicate section.
 | 1 | `world` | Solid tiles (walls, fences, trees, rocks) and solid props |
 | 2 | `player` | Player body |
 | 3 | `interactables` | `Interactable` areas (detected by the player's `InteractionProbe`) |
-| 4 | `npcs` | [planned] NPC bodies |
+| 4 | `npcs` | NPC bodies (blocks the player) |
 | 5 | `water` | Water tiles. **Separate from `world`** so swimming mounts can drop it from their mask. |
 | 6 | `kith` | [planned] Overworld kith |
 | 7 | `triggers` | [planned] Map transitions, cutscene triggers, encounter zones |
 
-The player body's mask is `world + water`. Mounts change the mask (§10).
+The player body's mask is `world + npcs + water`. Mounts change the mask (§10).
 
 ## 6. Implemented systems (Phase 1)
 
@@ -172,6 +172,21 @@ fade in → wake-up message. This is the single place where "end of day" hooks w
 - Dialogue in Phase 1 is a plain line queue: `EventBus.dialogue_requested(lines)` → HUD `MessageBox`
   (modal, pauses the clock). The real dialogue system (data-driven trees, conditions, speakers) is
   planned for the NPC epic and will replace the payload, not the signal flow.
+
+### 6.5 Placeholder NPCs [implemented — Phase 2, minimal]
+
+- `NpcData` (`data/npcs/<id>.tres`): `id`, `display_name`, `sprite` (4-direction sheet),
+  `first_meeting_lines`, `repeat_lines`. Adding an NPC = data + a map marker, no code.
+- `Npc` (`game/characters/npc/npc.tscn`) **is an `Interactable`** (prompt "Talk") with a
+  `StaticBody2D` on physics layer 4 `npcs` (the player's mask now includes it). On interact it turns
+  to face the speaker, picks first-meeting or repeat lines, sets the world flag `met_<id>` (so the
+  memory is saved by `WorldState`) and emits `EventBus.conversation_requested(speaker, lines)`. The
+  message box shows the speaker's name tag.
+- Placed by the map tool (`npc` marker): **Tamsin** in the village plaza, **Odile** at the forest
+  entrance. Both stand still.
+- Deliberately **not** built: schedules, movement, relationships, gifts, quests, conditional
+  dialogue. The NPC epic replaces the line lists with the data-driven dialogue system. Because the
+  signal carries a speaker and lines, the HUD won't need to change.
 
 ## 7. Creature data architecture [planned — Phase 4]
 

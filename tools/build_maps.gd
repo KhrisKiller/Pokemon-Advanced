@@ -18,6 +18,7 @@ const MAP_TRANSITION_SCRIPT := "res://game/world/map_transition.gd"
 const SIGN_SCENE := "res://game/world/props/sign.tscn"
 const CRATE_SCENE := "res://game/world/props/crate.tscn"
 const BED_SCENE := "res://game/world/props/bed.tscn"
+const NPC_SCENE := "res://game/characters/npc/npc.tscn"
 const T := 16
 
 ## Atlas x-coordinates. Keep in sync with TILE_NAMES in generate_placeholder_art.gd (append only).
@@ -44,6 +45,7 @@ const TERRAIN := {
 ##   {type: "exit", target, spawn, ground}      MapTransition covering all cells with that char
 ##   {type: "prop", scene, name, ground, lines?}
 ##   {type: "sign", ground}                     next entry of `signs` (row-major order)
+##   {type: "npc", data, name, ground}          Npc scene with the NpcData resource at `data`
 ##   {type: "ground", ground}                   plain ground (reserved for a later phase)
 const MAPS := {
 	"test_map": {
@@ -92,7 +94,7 @@ const MAPS := {
 			"1": {"type": "spawn", "name": "from_farm", "ground": "="},
 			">": {"type": "exit", "target": "farm", "spawn": "from_village", "ground": "="},
 			"S": {"type": "sign", "ground": "."},
-			"N": {"type": "ground", "ground": "c"},
+			"N": {"type": "npc", "data": "res://data/npcs/tamsin.tres", "name": "Tamsin", "ground": "c"},
 		},
 		"signs": [
 			{"name": "StationSign", "lines": ["Brambleford Station.", "(Blockout: building interiors come later.)"]},
@@ -112,7 +114,7 @@ const MAPS := {
 			"1": {"type": "spawn", "name": "from_farm", "ground": "="},
 			"<": {"type": "exit", "target": "farm", "spawn": "from_forest", "ground": "="},
 			"S": {"type": "sign", "ground": "."},
-			"N": {"type": "ground", "ground": "."},
+			"N": {"type": "npc", "data": "res://data/npcs/odile.tres", "name": "Odile", "ground": "."},
 		},
 		"signs": [
 			{"name": "PondSign", "lines": ["Mirelight Pond.", "(Blockout: a kith habitat will live here.)"]},
@@ -276,6 +278,10 @@ func _build_map(map_id: String, config: Dictionary, tileset: TileSet) -> PackedS
 						var sign := _instance(SIGN_SCENE, entry["name"], base)
 						sign.set("lines", PackedStringArray(entry["lines"]))
 						_add(entities, sign, root)
+					"npc":
+						var npc := _instance(NPC_SCENE, marker["name"], base - Vector2(0, 2))
+						npc.set("data", load(marker["data"]))
+						_add(entities, npc, root)
 					"ground":
 						pass
 			var entry: Array = TERRAIN[terrain_key]

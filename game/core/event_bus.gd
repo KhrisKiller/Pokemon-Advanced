@@ -8,6 +8,10 @@ extends Node
 @warning_ignore("unused_signal")
 signal dialogue_requested(lines: PackedStringArray)
 
+## Someone speaks: like dialogue_requested, with a speaker name shown in the message box.
+@warning_ignore("unused_signal")
+signal conversation_requested(speaker: String, lines: PackedStringArray)
+
 ## A modal UI (message box, fade, menus) opened or closed. The player ignores input while any is open.
 @warning_ignore("unused_signal")
 signal modal_opened(modal_id: StringName)
