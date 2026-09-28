@@ -26,5 +26,22 @@ func test_future_or_invalid_versions_are_rejected() -> void:
 
 
 func test_sections_ignore_non_dictionary_values() -> void:
-	var sections := SaveFormat.get_sections({"format_version": 1, "saved_at": "x", "junk": 5, "a": {}})
+	var sections := SaveFormat.get_sections({"format_version": 2, "sections": {"junk": 5, "a": {}}})
 	assert_eq(sections.keys(), ["a"])
+
+
+func test_build_includes_meta() -> void:
+	var data := SaveFormat.build({}, "2026-01-01T00:00:00Z", "0.2.0", {"location": "Farm"})
+	var meta := SaveFormat.get_file_meta(data)
+	assert_eq(meta["saved_at"], "2026-01-01T00:00:00Z")
+	assert_eq(meta["game_version"], "0.2.0")
+	assert_eq(meta["summary"]["location"], "Farm")
+
+
+func test_current_version_is_not_migrated() -> void:
+	var data := SaveFormat.build({"a": {"x": 1}}, "t")
+	assert_eq(SaveFormat.upgrade(data), data)
+
+
+func test_current_version_without_sections_is_rejected() -> void:
+	assert_eq(SaveFormat.upgrade({"format_version": SaveFormat.CURRENT_VERSION}), {})

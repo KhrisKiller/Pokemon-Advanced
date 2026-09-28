@@ -4,7 +4,9 @@ extends Node
 ## Systems that persist register as **providers** implementing the Saveable contract:
 ##   get_save_id() -> StringName
 ##   to_save_data() -> Dictionary      (JSON-safe values only: bool, int, float, String, Array, Dictionary)
-##   load_save_data(data: Dictionary)  (must accept {} and fall back to defaults)
+##   load_save_data(data: Dictionary)  (must accept {} and fall back to defaults, and keep reading
+##                                      older versions of its own section)
+## Optional: get_save_summary() -> Dictionary, merged into the file's `meta.summary` (load screen).
 ## The composition root (Main) registers the session's providers; sections load in registration order. Files are JSON in `save_dir`, written atomically
 ## (temp file + rename) with the previous save kept as `.bak`, which is used if the main file is
 ## unreadable.
@@ -80,8 +82,17 @@ func collect_sections() -> Dictionary:
 	return sections
 
 
+func collect_summary() -> Dictionary:
+	var summary := {}
+	for provider in _providers:
+		if provider.has_method("get_save_summary"):
+			summary.merge(provider.get_save_summary(), true)
+	return summary
+
+
 func save_game(slot: int = 1) -> Error:
-	var data := SaveFormat.build(collect_sections(), Time.get_datetime_string_from_system(true) + "Z")
+	var data := SaveFormat.build(collect_sections(), Time.get_datetime_string_from_system(true) + "Z",
+			str(ProjectSettings.get_setting("application/config/version", "")), collect_summary())
 	var err := _write_atomic(get_slot_path(slot), JSON.stringify(data, "\t"))
 	if err != OK:
 		push_warning("Saving slot %d failed: %s" % [slot, error_string(err)])
@@ -104,6 +115,11 @@ func load_game(slot: int = 1) -> Error:
 	apply_sections(SaveFormat.get_sections(data))
 	game_loaded.emit(slot)
 	return OK
+
+
+## Metadata of a slot (saved_at, game_version, summary) without applying it. {} if none.
+func read_meta(slot: int = 1) -> Dictionary:
+	return SaveFormat.get_file_meta(read_save_data(get_slot_path(slot)))
 
 
 ## Gives each provider its section ({} if missing), in registration order.

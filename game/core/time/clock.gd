@@ -114,6 +114,10 @@ func to_save_data() -> Dictionary:
 	return time.to_dict()
 
 
+func get_save_summary() -> Dictionary:
+	return {"date": time.format_date(), "time": time.format_clock()}
+
+
 func load_save_data(data: Dictionary) -> void:
 	time.from_dict(data)
 	_accumulated_seconds = 0.0

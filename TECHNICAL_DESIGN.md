@@ -70,7 +70,13 @@ tools/                   Dev tools: Godot installer, placeholder art and test ma
 | Name | File | Responsibility |
 | --- | --- | --- |
 | `EventBus` | `game/core/event_bus.gd` | Declares global signals only. No state, no logic. |
+| `SaveService` | `game/core/save/save_service.gd` | Save slots on disk; provider registry; format upgrades. It has no game knowledge. Listed before `Clock` so it exists first. |
 | `Clock` | `game/core/time/clock.gd` | Owns the `GameTime`; advances it in real time; emits time signals; pause requests. |
+| `WorldState` | `game/core/world_state.gd` | Persistent world facts: typed flags and discovered locations. It is a global because story, NPCs, maps and (later) quests all read it. |
+
+Autoloads do **not** register themselves as save providers. `Main`, the composition root of a play
+session, registers `Clock`, `WorldState` and itself, so a stray instance (for example in a test)
+can never become a duplicate section.
 
 ## 5. Physics layers [implemented]
 
@@ -196,18 +202,35 @@ resources by `id` (handling `.remap` in exported builds). Gameplay looks up cont
 `Condition` and `Effect` are small reusable `Resource` classes (e.g. `FlagIsSet`, `TensionAtLeast`,
 `SetFlag`, `ModifyPrice`) shared by quests, NPC overrides, world events and dialogue.
 
-## 9. Save system [planned — Phase 2+, contract fixed now]
+## 9. Save system [implemented — Phase 2]
 
-- Format: **JSON** in `user://saves/slot_<n>.json` plus a small `slot_<n>.meta.json` for the load screen.
-  Not Godot `Resource` files, because loading a `.tres` can instantiate arbitrary scripts, which is unsafe for shared saves.
-- Top-level: `{ "version": int, "saved_at": iso8601, "sections": { "<section_id>": {...} } }`.
-- **Saveable contract:** any system that persists implements
-  `get_save_id() -> StringName`, `to_save_data() -> Dictionary`, `load_save_data(data: Dictionary)`.
-  `SaveService` collects from registered providers; each section is versioned independently and has
-  migration functions (`migrate_v1_to_v2`).
-- Only ids and values are saved (never node paths or resource paths), so content can move.
-- `GameTime.to_dict()/from_dict()` already follows this contract.
-- Auto-save happens at the end of the day-transition flow.
+- **Files:** JSON in `user://saves/slot_<n>.json`, not Godot `Resource` files, because loading a
+  `.tres` can instantiate arbitrary scripts, which is unsafe for shared saves. Writes are **atomic**
+  (`.tmp` then rename). The previous save is kept as `.bak` and loaded automatically if the main file
+  is unreadable.
+- **Format v2** (current, `SaveFormat`):
+  `{ "format_version": 2, "meta": { saved_at, game_version, summary }, "sections": { "<id>": {...} } }`.
+  `meta.summary` is gathered from providers' optional `get_save_summary()` (date, time, location), so a
+  load screen can list slots without applying them (`SaveService.read_meta(slot)`).
+- **Saveable contract:** `get_save_id() -> StringName`, `to_save_data() -> Dictionary`,
+  `load_save_data(data: Dictionary)`. The last must accept `{}` (section missing, which means defaults)
+  and older versions of its own section. Values must be JSON-safe. Only ids and values are saved,
+  never node or resource paths.
+- **Sections today:** `clock` (day index, minute), `world` (flags, discovered locations), `player`
+  (map id, position, facing). They load in registration order: time, world, then the player (who may
+  change the map).
+- **Two versioning layers:**
+  1. *File format*: `SaveMigrations.migrate()` runs steps v1 → v2 → …. v1 (sections at the top level)
+     was the first Phase 2 format; v1 → v2 moved sections under `sections` and added `meta`.
+  2. *Section*: each section carries `"version"` and its provider reads old versions. Example: player
+     section v1 stored `facing` as `[x, y]` floats; v2 stores `"left"`.
+- **Fixtures:** every shipped format has a real file written by that version's code in
+  `tests/fixtures/saves/` (`v1_phase2_early.json`). Tests migrate each fixture and boot the game from
+  it. Rule: never edit a migration step or a fixture; add new ones.
+- **When saving happens:** auto-save at the end of every day transition (sleep or collapse). On start,
+  `Main` continues from slot 1 if it exists. Debug builds: F5 quicksave, F9 quickload.
+- **Restart test:** `tests/persistence/run_restart_test.sh` saves in one Godot process and verifies in a
+  fresh one (see §11).
 
 ## 10. Mounts and movement classes [planned]
 
@@ -225,7 +248,7 @@ tactical system uses the same movement class vocabulary for terrain costs.
 - `tests/framework/test_case.gd` (`TestCase`): `before_each`/`after_each`, `assert_eq`,
   `assert_true`, `assert_false`, `assert_almost_eq`, `assert_not_null`, plus helpers to add nodes and await
   physics frames. Every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd` is run.
-- Unit tests cover pure logic (time). Integration tests instantiate real scenes headlessly (player
+- Unit tests cover pure logic (time, save format and migrations, world state). Integration tests instantiate real scenes headlessly (player
   movement against collision, interaction, the sleep flow, the main scene booting).
 - CI: `.github/workflows/tests.yml` installs the pinned Godot, imports, and runs the suite.
 - Visual check: `tools/capture_screenshots.tscn` plays a scripted session of the real game (wake up,

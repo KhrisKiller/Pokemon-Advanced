@@ -135,13 +135,22 @@ func get_save_id() -> StringName:
 	return &"player"
 
 
+## Player section history: v1 stored `facing` as [x, y] floats; v2 stores a name ("left").
+const PLAYER_SECTION_VERSION := 2
+const FACING_NAMES := {"up": Vector2.UP, "down": Vector2.DOWN, "left": Vector2.LEFT, "right": Vector2.RIGHT}
+
+
 func to_save_data() -> Dictionary:
 	return {
-		"version": 1,
+		"version": PLAYER_SECTION_VERSION,
 		"map_id": String(current_map.map_id),
 		"position": [player.global_position.x, player.global_position.y],
-		"facing": [player.facing.x, player.facing.y],
+		"facing": _facing_to_name(player.facing),
 	}
+
+
+func get_save_summary() -> Dictionary:
+	return {"location": current_map.display_name}
 
 
 func load_save_data(data: Dictionary) -> void:
@@ -153,9 +162,23 @@ func load_save_data(data: Dictionary) -> void:
 		player.set_facing(Vector2.DOWN)
 	else:
 		player.global_position = _to_vector2(data.get("position"), current_map.get_spawn_position(start_spawn))
-		player.set_facing(_to_vector2(data.get("facing"), Vector2.DOWN).round())
+		player.set_facing(_read_facing(data))
 	player.velocity = Vector2.ZERO
 	player.camera.reset_smoothing()
+
+
+static func _read_facing(data: Dictionary) -> Vector2:
+	var raw: Variant = data.get("facing")
+	if int(data.get("version", 1)) <= 1:
+		return _to_vector2(raw, Vector2.DOWN).round()  # v1: [x, y]
+	return FACING_NAMES.get(str(raw), Vector2.DOWN)
+
+
+static func _facing_to_name(facing: Vector2) -> String:
+	for facing_name: String in FACING_NAMES:
+		if FACING_NAMES[facing_name] == facing:
+			return facing_name
+	return "down"
 
 
 static func _to_vector2(value: Variant, fallback: Vector2) -> Vector2:

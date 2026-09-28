@@ -37,6 +37,12 @@ var _collector := ErrorCollector.new()
 
 
 func _ready() -> void:
+	# If an autoload failed to compile, fail fast instead of hanging.
+	for autoload in ["EventBus", "SaveService", "Clock", "WorldState"]:
+		if get_node_or_null("/root/" + autoload) == null:
+			printerr("Autoload %s is missing (script error?). Aborting tests." % autoload)
+			get_tree().quit(1)
+			return
 	SaveService.save_dir = TEST_SAVE_DIR
 	OS.add_logger(_collector)
 	await get_tree().process_frame
