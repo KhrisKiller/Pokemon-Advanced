@@ -1,0 +1,75 @@
+; Engine configuration file.
+; MONSERA — see TECHNICAL_DESIGN.md for the reasoning behind these settings.
+
+config_version=5
+
+[application]
+
+config/name="MONSERA"
+config/description="Original 2D top-down RPG: farming, creature bonding, tactical warfare and exploration."
+config/version="0.1.0"
+run/main_scene="res://game/main/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+EventBus="*res://game/core/event_bus.gd"
+
+[debug]
+
+gdscript/warnings/untyped_declaration=1
+gdscript/warnings/integer_division=0
+
+[display]
+
+window/size/viewport_width=640
+window/size/viewport_height=360
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="viewport"
+window/stretch/scale_mode="integer"
+
+[input]
+
+move_left={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":65), Object(InputEventKey,"device":-1,"physical_keycode":4194319), Object(InputEventJoypadMotion,"device":-1,"axis":0,"axis_value":-1.0), Object(InputEventJoypadButton,"device":-1,"button_index":13)]
+}
+move_right={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":68), Object(InputEventKey,"device":-1,"physical_keycode":4194321), Object(InputEventJoypadMotion,"device":-1,"axis":0,"axis_value":1.0), Object(InputEventJoypadButton,"device":-1,"button_index":14)]
+}
+move_up={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":87), Object(InputEventKey,"device":-1,"physical_keycode":4194320), Object(InputEventJoypadMotion,"device":-1,"axis":1,"axis_value":-1.0), Object(InputEventJoypadButton,"device":-1,"button_index":11)]
+}
+move_down={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":83), Object(InputEventKey,"device":-1,"physical_keycode":4194322), Object(InputEventJoypadMotion,"device":-1,"axis":1,"axis_value":1.0), Object(InputEventJoypadButton,"device":-1,"button_index":12)]
+}
+interact={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":69), Object(InputEventKey,"device":-1,"physical_keycode":32), Object(InputEventJoypadButton,"device":-1,"button_index":0)]
+}
+debug_skip_hour={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":84)]
+}
+
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="player"
+2d_physics/layer_3="interactables"
+2d_physics/layer_4="npcs"
+2d_physics/layer_5="water"
+2d_physics/layer_6="kith"
+2d_physics/layer_7="triggers"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+2d/snap/snap_2d_transforms_to_pixel=false

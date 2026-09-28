@@ -1,0 +1,20 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+
+# Exports / builds
+/build/
+/export/
+*.pck
+*.exe
+*.x86_64
+*.apk
+*.aab
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
