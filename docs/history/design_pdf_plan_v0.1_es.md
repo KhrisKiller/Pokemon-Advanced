@@ -1,3 +1,10 @@
+> **HISTORICAL DOCUMENT — SUPERSEDED.**
+> This is a transcription of `Design.pdf` (v0.1, Sept 2026), which described Pokémon Advanced as a
+> Pokémon Emerald ROM hack built on pokeemerald-expansion. That approach has been **abandoned**.
+> The project is now **MONSERA**, an original IP built in Godot 4. Nothing in this file is a current
+> instruction: no Pokémon code, assets, tools (Porymap, Poryscript, devkitARM) or content are used.
+> The design ideas that survived are listed in `GDD.md` → "Heritage from Design.pdf".
+
 # Plan de trabajo por fases
 
 **Pokémon Advanced · Mod de Pokémon Esmeralda (GBA)**
