@@ -13,7 +13,8 @@ how much you fight, is up to you.
 
 ## Status
 
-**Phase 0: pre-production.** Foundation documents are written; the Godot project is next.
+**Phase 1: basic Godot project.** Walk around a test map, interact with objects, and watch the day pass
+and sleep. See [ROADMAP.md](ROADMAP.md).
 
 ## Run it
 

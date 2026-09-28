@@ -8,8 +8,8 @@
 | Phase | Name | Exit criterion | Status |
 | --- | --- | --- | --- |
 | 0 | Pre-production & architecture | All foundation docs exist and agree | ✅ |
-| 1 | Basic Godot project | Project boots; player walks a test map with camera, interaction and a day clock; tests run in CI | 🔨 in progress |
-| 2 | Player & world | Map transitions, farm + village + forest blockouts, NPC placeholders, **save/load v1** | ⏳ |
+| 1 | Basic Godot project | Project boots; player walks a test map with camera, interaction and a day clock; tests run in CI | ✅ |
+| 2 | Player & world | Map transitions, farm + village + forest blockouts, NPC placeholders, **save/load v1** | ⏳ next |
 | 3 | Basic farming | Till → plant → water → sleep → grow → harvest → sell loop, with saves | ⏳ |
 | 4 | Basic creature system | Kith data, instances, retinue, feeding/trust, one utility action | ⏳ |
 | 5 | Creature battle | Wild 1v1 battle + bonding from an overworld encounter | ⏳ |
@@ -20,34 +20,48 @@
 | 10 | Polish & expansion | Art pass, audio, balance, then the next region | ⏳ |
 
 **Risk-first rule:** the tactical prototype (Phase 7) may start a greybox spike during Phase 4–5 if
-the team wants to de-risk it earlier (see "Risks" in the final report / `CLAUDE.md`).
+the team wants to de-risk it earlier (see "Risks" below).
+
+## Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Scope explosion (four genres in one game) | Never finishing | Vertical slice first; systems validated with 1–3 content items before mass content; each phase has an exit criterion |
+| Tactical combat isn't fun, or is too big to build | The war pillar collapses | Optional early greybox spike; fallback (inherited from Design.pdf): tactics only for story battles |
+| Systems feel disconnected ("four minigames") | Core promise fails | Interaction matrix in `SYSTEMS.md`; Phase 8 is dedicated to links; slice beats require cross-system use |
+| Two combat systems double the balance work | Slow tuning | Shared aspect chart and stats with separate derived profiles; formulas in one tested place |
+| Save compatibility breaks as systems grow | Lost playtest saves | Versioned save sections with migrations from Save v1 |
+| Creature designs drift towards existing franchises | Legal/identity risk | Originality rules in `CREATURE_BIBLE.md` and `ART_BIBLE.md`; review every concept |
+| Solo/beginner developer bandwidth | Stalls | Small phases, tests + CI, docs that stay truthful, `CLAUDE.md` workflow |
+| Art production cost | Placeholder look forever | Style test before production; limited slice asset list |
 
 ---
 
 ## EPIC: CORE
 
-### Milestone: Foundation (Phase 1) 🔨
+### Milestone: Foundation (Phase 1) ✅
 - Feature: Project setup
-  - [ ] Godot 4.7.2 project, GL Compatibility, 640×360 integer scaling
-  - [ ] Input map (keyboard + gamepad): move, interact, debug skip hour
-  - [ ] Physics layer names
-  - [ ] `EventBus` autoload
-  - [ ] Pinned Godot installer script, `.gitignore`, `.gitattributes`
+  - [x] Godot 4.7.2 project, GL Compatibility, 640×360 integer scaling
+  - [x] Input map (keyboard + gamepad): move, interact, debug skip hour
+  - [x] Physics layer names
+  - [x] `EventBus` autoload
+  - [x] Pinned Godot installer script, `.gitignore`, `.gitattributes`
 - Feature: Tests & CI
-  - [ ] Headless test runner scene + `TestCase` base
-  - [ ] GitHub Actions workflow running the suite
+  - [x] Headless test runner scene + `TestCase` base
+  - [x] GitHub Actions workflow running the suite (46 tests)
+  - [x] Screenshot tool that drives the real game (`tools/capture_screenshots.tscn`)
 - Feature: Time
-  - [ ] `TimeConfig` resource, `GameTime` model, `Clock` autoload
-  - [ ] Pause requests keyed by reason
-  - [ ] Curfew at 2:00, `end_day()`
-  - [ ] Day/night tint
-  - [ ] Unit tests for calendar math, rollover, serialization
+  - [x] `TimeConfig` resource, `GameTime` model, `Clock` autoload
+  - [x] Pause requests keyed by reason
+  - [x] Curfew at 2:00, `end_day()`
+  - [x] Day/night tint
+  - [x] Unit tests for calendar math, rollover, serialization
 - Feature: Interaction
-  - [ ] `Interactable` base, `InteractionProbe`, closest-target selection
-  - [ ] Sign and bed props
-  - [ ] Integration tests
+  - [x] `Interactable` base, `InteractionProbe`, closest-target selection
+  - [x] Sign and bed props
+  - [x] Integration tests
 - Feature: Day transition
-  - [ ] Sleep and curfew flow with fade, wake-up message
+  - [x] Sleep and curfew flow with fade, wake-up message
 
 ### Milestone: Content pipeline (Phase 2–4)
 - Feature: Content DB
@@ -197,10 +211,10 @@ the team wants to de-risk it earlier (see "Risks" in the final report / `CLAUDE.
 ## EPIC: UI
 
 ### Milestone: UI foundation (Phase 1–2)
-- [ ] HUD clock (date + time, 10-minute steps)
-- [ ] Interaction prompt with the bound key
-- [ ] Message box (modal, pauses time)
-- [ ] Screen fade
+- [x] HUD clock (date + time, 10-minute steps)
+- [x] Interaction prompt with the bound key
+- [x] Message box (modal, pauses time)
+- [x] Screen fade
 - [ ] Pause menu (resume, save, settings, quit) (Phase 2)
 - [ ] Inventory/hotbar (Phase 3), kith party screen (Phase 4), battle UI (Phase 5), tactical UI (Phase 7)
 - [ ] Pixel font + UI theme resource (Phase 10 at latest)
@@ -208,7 +222,7 @@ the team wants to de-risk it earlier (see "Risks" in the final report / `CLAUDE.
 
 ## EPIC: ART & AUDIO
 
-- [ ] Placeholder art generator (tiles, player, props)
+- [x] Placeholder art generator (tiles, player, props)
 - [ ] Style test: 1 map in final style (Phase 9–10, see `ART_BIBLE.md`)
 - [ ] Final tilesets for the slice; kith sprites for the 6 slice kith
 - [ ] Music: farm day/night, village, forest, battle, tactical; SFX set

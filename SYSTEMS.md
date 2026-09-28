@@ -7,13 +7,13 @@
 
 | System | Purpose | Status | Code | Data |
 | --- | --- | --- | --- | --- |
-| Time & calendar | Day/night, days, seasons, curfew, sleep | 🔨 Phase 1 | `game/core/time/` | `data/config/time_config.tres` |
-| Player controller | Movement, facing, control lock | 🔨 Phase 1 | `game/characters/player/` | — |
-| Camera | Follows the player, clamped to map | 🔨 Phase 1 | `player.tscn`, `WorldMap` | — |
-| Maps | Tile layers, entities, spawn points | 🔨 Phase 1 | `game/world/` | tileset `.tres` |
-| Interaction | Interactables and probe, prompts | 🔨 Phase 1 | `game/core/interaction/` | per-prop exports |
+| Time & calendar | Day/night, days, seasons, curfew, sleep | ✅ | `game/core/time/` | `data/config/time_config.tres` |
+| Player controller | Movement, facing, control lock | ✅ | `game/characters/player/` | — |
+| Camera | Follows the player, clamped to map | ✅ | `player.tscn`, `WorldMap` | — |
+| Maps | Tile layers, entities, spawn points | ✅ (test map) | `game/world/` | tileset `.tres` |
+| Interaction | Interactables and probe, prompts | ✅ | `game/core/interaction/` | per-prop exports |
 | Messages | Simple modal text queue | 🟡 placeholder for Dialogue | `game/ui/hud/` | — |
-| Day transition | Sleep and curfew → next morning | 🔨 Phase 1 | `game/main/main.gd` | — |
+| Day transition | Sleep and curfew → next morning | ✅ (no growth/save hooks yet) | `game/main/main.gd` | — |
 | Save / load | Persist everything | 📐 contract fixed (`TECHNICAL_DESIGN` §9) | — | — |
 | Content DB | Look up content by id | 📐 | — | `data/*` |
 | Inventory | Items, stacks, tags | 📐 | — | `data/items/` |
@@ -48,17 +48,17 @@ Rows **feed** columns. Every system must feed at least two others. (✔ = design
 
 ## 3. System notes
 
-### Time & calendar 🔨 (Phase 1)
+### Time & calendar ✅
 6:00→2:00 days, 28-day seasons, 4 seasons, 7-day week. Time pauses during modals (reason-keyed
 pause requests). The day transition is the heartbeat hook: farming growth, world tick, NPC schedule
 reset and auto-save will all be attached there, in that order.
 *Tuning:* 0.7 s per game minute ≈ 14 real minutes per day.
 
-### Player & camera 🔨 (Phase 1)
+### Player & camera ✅
 Analog 8-way movement at 80 px/s (5 tiles/s) with acceleration/friction; 4-way facing.
 Camera is smoothed and limited to the map. *Next:* movement classes for mounts; run/stamina (Farming epic).
 
-### Interaction 🔨 (Phase 1)
+### Interaction ✅
 Front-facing probe; closest enabled interactable wins; HUD prompt shows the interact key and the
 verb. Extensible by subclassing `Interactable` (sign and bed exist). *Next:* NPC talk, pickups,
 farm plots, doors/map transitions.

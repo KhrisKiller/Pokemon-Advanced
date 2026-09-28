@@ -26,10 +26,18 @@ Start with `GDD.md`. The architecture is in `TECHNICAL_DESIGN.md` and real statu
 tools/install_godot.sh                            # installs pinned Godot 4.7.2 to ~/.local/bin/godot (idempotent)
 godot --headless --path . --import                # (re)import assets, build class cache — run after adding files
 godot --headless --path . res://tests/test_runner.tscn   # run all tests (exit code 0 = pass)
+godot --headless --path . res://tests/test_runner.tscn -- --filter=clock   # run test files whose path contains "clock"
 godot --path .                                    # run the game (needs a display)
-godot --headless --path . --script res://tools/generate_placeholder_art.gd  # regenerate placeholder PNGs
-godot --headless --path . --script res://tools/build_test_map.gd            # regenerate the test map scene
+godot --headless --path . --script res://tools/generate_placeholder_art.gd  # regenerate placeholder PNGs (then --import)
+godot --headless --path . res://tools/build_test_map.tscn                   # regenerate tileset + test map scene
+xvfb-run -a godot --path . --rendering-driver opengl3 res://tools/capture_screenshots.tscn -- --out=/tmp/shots
+                                                  # play a scripted session and save screenshots (visual check)
 ```
+
+Tools that load game scripts run **as scenes**, not with `--script`: in `--script` mode autoloads
+(`EventBus`, `Clock`) don't exist, so scripts that reference them fail to compile.
+The test runner fails a test on any engine/script error logged while it runs (via a `Logger`), not
+only on failed assertions, so a green run means no runtime errors either.
 
 After creating new `.gd` files with a `class_name`, run the import command before running tests, so
 the global class cache is up to date. Commit the generated `*.uid` and `*.import` files; never
@@ -62,4 +70,5 @@ commit `.godot/`.
 
 ## Current phase
 
-Phase 0 (docs) is done. **Now: Phase 1** — Godot project, player movement, camera, test map, interaction, day/time.
+Phase 1 (basic Godot project) is done. **Next: Phase 2** — map transitions, farm/village/forest
+blockouts, save/load v1. Do not start farming, kith, combat or war until the owner approves moving on.

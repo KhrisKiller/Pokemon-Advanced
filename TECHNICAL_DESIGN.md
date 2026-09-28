@@ -1,6 +1,6 @@
 # MONSERA — Technical Design
 
-> Architecture reference. Sections marked **[Phase 1 — in progress]** describe code that exists and is tested.
+> Architecture reference. Sections marked **[implemented]** describe code that exists and is tested.
 > Sections marked **[planned]** are binding design for future phases; update them when implemented.
 
 ## 1. Engine and platform
@@ -15,7 +15,7 @@
 | Texture filter | Nearest | Pixel art |
 | Platforms | Windows, Linux first; Android later (no mobile optimisation yet) | Directive |
 
-## 2. Repository layout [Phase 1 — in progress]
+## 2. Repository layout [implemented]
 
 ```
 project.godot            Godot project (root = res://)
@@ -65,14 +65,14 @@ tools/                   Dev tools: Godot installer, placeholder art and test ma
 6. **Deterministic core.** Simulation code must not read wall-clock time or the global RNG. Randomness
    goes through a seeded `RandomNumberGenerator` owned by state (planned for battle and world tick).
 
-## 4. Autoloads [Phase 1 — in progress]
+## 4. Autoloads [implemented]
 
 | Name | File | Responsibility |
 | --- | --- | --- |
 | `EventBus` | `game/core/event_bus.gd` | Declares global signals only. No state, no logic. |
 | `Clock` | `game/core/time/clock.gd` | Owns the `GameTime`; advances it in real time; emits time signals; pause requests. |
 
-## 5. Physics layers [Phase 1 — in progress]
+## 5. Physics layers [implemented]
 
 | Layer | Name | Used by |
 | --- | --- | --- |
@@ -88,7 +88,7 @@ The player body's mask is `world + water`. Mounts change the mask (§10).
 
 ## 6. Implemented systems (Phase 1)
 
-### 6.1 Time [Phase 1 — in progress]
+### 6.1 Time [implemented]
 
 - `TimeConfig` (`Resource`, `data/config/time_config.tres`): real seconds per game minute (0.7),
   day start (6:00), day end (26:00 = 2:00 next morning), days per season (28), season and weekday
@@ -108,7 +108,7 @@ The player body's mask is `world + water`. Mounts change the mask (§10).
 → player control locked → fade out → `Clock.end_day()` (later: growth tick, world tick, auto-save) →
 fade in → wake-up message. This is the single place where "end of day" hooks will be added.
 
-### 6.2 Player movement and camera [Phase 1 — in progress]
+### 6.2 Player movement and camera [implemented]
 
 - `Player` (`CharacterBody2D`): 8-direction analog movement (`Input.get_vector`, so diagonals are not
   faster), with acceleration/friction, 4-way facing for sprite and interaction, and `move_and_slide`
@@ -119,18 +119,19 @@ fade in → wake-up message. This is the single place where "end of day" hooks w
 - `Camera2D` is a child of the player with position smoothing. `WorldMap.apply_camera_limits()` clamps it
   to the map's used rectangle, so the camera never shows outside the map.
 
-### 6.3 Maps [Phase 1 — in progress]
+### 6.3 Maps [implemented]
 
 - `WorldMap` (`Node2D` base script for every map): `Ground` and `Obstacles` `TileMapLayer`s, a
   y-sorted `Entities` node (props, NPCs, player) and `Marker2D` spawn points in `SpawnPoints`.
   API: `get_spawn_position(id)`, `add_entity(node)`, `get_bounds()`, `apply_camera_limits(camera)`.
 - Tiles: `game/world/tilesets/placeholder_tileset.tres` (physics layer 0 → `world`, physics layer
   1 → `water`).
-- The test map `game/world/maps/test_map.tscn` is **generated** by `tools/build_test_map.gd` from an
+- The test map `game/world/maps/test_map.tscn` (48×30 tiles: house with bed, sign, crate, pond,
+  fenced tilled field, paths, tree border) is **generated** by `tools/build_test_map.tscn` from an
   ASCII layout, then committed as a normal scene. It can be opened and painted in the editor; the
   generator is only a bootstrap. Future maps are authored in the editor.
 
-### 6.4 Interaction [Phase 1 — in progress]
+### 6.4 Interaction [implemented]
 
 - `Interactable` (`Area2D`, layer `interactables`): `prompt` text, `enabled`, `interacted(actor)`
   signal, and a virtual `_on_interact(actor)`. Specialised props extend it:
@@ -214,17 +215,23 @@ The player has a `movement_class` (foot, land_mount, water_mount, …) that sets
 mask. For example, a water mount removes `water` from the mask and adds shore-edge detection. The
 tactical system uses the same movement class vocabulary for terrain costs.
 
-## 11. Testing [Phase 1 — in progress]
+## 11. Testing [implemented]
 
-- Runner: `godot --headless --path . res://tests/test_runner.tscn` (running a scene means autoloads
-  and project settings load exactly as in the game). It exits with code 0 on success and 1 on any
-  failure.
+- Runner: `godot --headless --path . res://tests/test_runner.tscn [-- --filter=<text>]` (running a
+  scene means autoloads and project settings load exactly as in the game). It exits with code 0 on
+  success and 1 on any failure.
+- A test also fails if **any engine or script error** is logged while it runs. The runner installs a
+  `Logger` (Godot 4.5+ API), so runtime errors such as a null call can't pass silently.
 - `tests/framework/test_case.gd` (`TestCase`): `before_each`/`after_each`, `assert_eq`,
   `assert_true`, `assert_false`, `assert_almost_eq`, `assert_not_null`, plus helpers to add nodes and await
   physics frames. Every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd` is run.
 - Unit tests cover pure logic (time). Integration tests instantiate real scenes headlessly (player
   movement against collision, interaction, the sleep flow, the main scene booting).
 - CI: `.github/workflows/tests.yml` installs the pinned Godot, imports, and runs the suite.
+- Visual check: `tools/capture_screenshots.tscn` plays a scripted session of the real game (wake up,
+  walk out, read the sign, evening, night, sleep) and saves screenshots. It needs a display
+  (`xvfb-run` on servers).
+- Current suite: 46 tests (23 unit, 23 integration).
 
 ## 12. Multiplayer readiness (not implemented)
 
@@ -254,3 +261,5 @@ discrete points (day transitions, battle turns).
 | D7 | Daily tick for farming, world simulation and economy | Continuous simulation | Simple, deterministic, cheap, save-friendly; matches the game's rhythm |
 | D8 | Water is its own physics layer | Water on `world` layer | Swimming mounts can toggle it |
 | D9 | Movement ≠ Speed stat in tactics | Derive move from Speed | Keeps the two combat systems independently balanceable |
+| D10 | Dev tools that touch game scripts run as scenes | `--script` SceneTree tools | Autoloads don't exist in `--script` mode, so dependent scripts fail to compile |
+| D11 | Time pauses during modals via reason-keyed requests | A single `paused` bool | Independent systems (dialogue, fades, menus) can't un-pause each other |
