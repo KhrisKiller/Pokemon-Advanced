@@ -18,3 +18,5 @@ jobs:
         run: godot --headless --path . --import
       - name: Run tests
         run: godot --headless --path . res://tests/test_runner.tscn
+      - name: Restart persistence test (save in one process, load in another)
+        run: tests/persistence/run_restart_test.sh
