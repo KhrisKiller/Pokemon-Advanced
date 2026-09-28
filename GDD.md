@@ -206,6 +206,18 @@ at inns. Everything that defines the world is saved (see `TECHNICAL_DESIGN.md` �
 Multiplayer, romance, breeding execution (data only), full economy simulation, fog of war, weather
 simulation beyond flags, more than one region, voice, mobile UI, procedural content.
 
+## 16b. Decision status (owner review after Phase 1)
+
+**Approved:** creatures are central · food is an alternative path to bonding · no permanent kith death
+· tactical movement is independent of Speed · two separate combat systems sharing creature data ·
+farming, creatures, economy, exploration and warfare stay interconnected · player lifestyle stays
+unrestricted.
+
+**Provisional until validated by gameplay (don't expand the lore around them yet):** the terms kith,
+bonding and Bond Charm; the names Sera, Lowmere Vale, Aurelian Crown, Thornwood Compact and the
+Greying; the 6:00–2:00 day cycle and ~14 real minutes per day; the current balance formulas; the
+current aspect chart.
+
 ## 17. Heritage from Design.pdf
 
 `docs/history/Design.pdf` described a Pokémon Emerald ROM hack. The approach was abandoned. These

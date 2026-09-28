@@ -13,8 +13,9 @@ how much you fight, is up to you.
 
 ## Status
 
-**Phase 1: basic Godot project.** Walk around a test map, interact with objects, and watch the day pass
-and sleep. See [ROADMAP.md](ROADMAP.md).
+**Phase 2: player & world, complete.** Walk between the farm, the village and the forest
+(placeholder blockouts), talk to two placeholder NPCs, sleep to auto-save, and continue after a
+restart. An isolated tactical combat prototype lives in `spikes/tactical/`. See [ROADMAP.md](ROADMAP.md).
 
 ## Run it
 
@@ -26,7 +27,10 @@ godot --headless --path . res://tests/test_runner.tscn    # tests
 ```
 
 Controls: **WASD/arrows/left stick** move · **E/Space/gamepad A** interact and advance text ·
-**T** (debug builds) skip one hour.
+debug builds: **T** skip one hour, **F5** quicksave, **F9** quickload. The game continues from your
+save automatically; delete `user://saves/` to start over.
+
+Tactical spike: `godot --path . res://spikes/tactical/tactical_spike.tscn`
 
 ## Documentation
 

@@ -1,7 +1,7 @@
 # MONSERA — Systems
 
 > What each system does, what it feeds, and its **real** implementation status.
-> Status: ✅ implemented & tested · 🟡 partial · 📐 designed only · ⏳ not started.
+> Status: ✅ implemented & tested · 🟡 partial · 🧪 isolated prototype · 📐 designed only · ⏳ not started.
 
 ## 1. System index
 
@@ -10,24 +10,25 @@
 | Time & calendar | Day/night, days, seasons, curfew, sleep | ✅ | `game/core/time/` | `data/config/time_config.tres` |
 | Player controller | Movement, facing, control lock | ✅ | `game/characters/player/` | — |
 | Camera | Follows the player, clamped to map | ✅ | `player.tscn`, `WorldMap` | — |
-| Maps | Tile layers, entities, spawn points | ✅ (test map) | `game/world/` | tileset `.tres` |
+| Maps | Tile layers, entities, spawn points; farm, village, forest blockouts | ✅ blockouts | `game/world/`, `tools/maps/` | `data/maps/` |
+| Map transitions | Exits, spawn by id, fade, state preserved | ✅ | `game/world/map_transition.gd`, `game/main/` | `data/maps/map_catalog.tres` |
 | Interaction | Interactables and probe, prompts | ✅ | `game/core/interaction/` | per-prop exports |
-| Messages | Simple modal text queue | 🟡 placeholder for Dialogue | `game/ui/hud/` | — |
-| Day transition | Sleep and curfew → next morning | ✅ (no growth/save hooks yet) | `game/main/main.gd` | — |
-| Save / load | Persist everything | 📐 contract fixed (`TECHNICAL_DESIGN` §9) | — | — |
+| Messages | Modal text queue with speaker name tag | 🟡 placeholder for Dialogue | `game/ui/hud/` | — |
+| Day transition | Sleep and curfew → next morning (home from any map) → auto-save | ✅ (no growth/world-tick hooks yet) | `game/main/main.gd` | — |
+| Save / load | Persist everything | ✅ v1 (time, world, player); migrations; restart-tested | `game/core/save/` | `tests/fixtures/saves/` |
 | Content DB | Look up content by id | 📐 | — | `data/*` |
 | Inventory | Items, stacks, tags | 📐 | — | `data/items/` |
 | Farming | Plots, crops, growth, harvest | 📐 | — | `data/crops/` |
 | Kith (creatures) | Species data, instances, trust, diet, maturation | 📐 | — | `data/creatures/` |
 | Creature battle | 1v1 turn-based battles, bonding | 📐 | — | `data/moves/` |
-| Tactical battle | Grid warfare with kith units | 📐 | — | `data/maps/tactical/` |
+| Tactical battle | Grid warfare with kith units | 📐 production · 🧪 isolated spike in `spikes/tactical/` awaiting evaluation | — | `data/maps/tactical/` |
 | Exploration gates | Utility/mount-based obstacles | 📐 | — | map data |
-| NPCs & schedules | Routines, relationships, gifts | 📐 | — | `data/npcs/` |
+| NPCs & schedules | Identity, talk (now); routines, relationships, gifts (later) | 🟡 2 placeholder NPCs, no schedules | `game/characters/npc/` | `data/npcs/` |
 | Dialogue | Data-driven conversations with conditions | 📐 | — | `data/dialogue/` |
 | Quests | Stages, conditions, rewards | 📐 | — | `data/quests/` |
 | Economy | Prices, shops, modifier stack | 📐 | — | `data/items/`, shops |
 | Callings | Domain progression without classes | 📐 | — | — |
-| World state & war | Flags, tension, factions, daily world tick | 📐 | — | `data/factions/` |
+| World state & war | Flags, tension, factions, daily world tick | 🟡 flags + discovered locations (saved); war not started | `game/core/world_state.gd` | `data/factions/` |
 | Audio | Music by time/place, SFX | ⏳ | — | — |
 
 ## 2. Interaction matrix
@@ -57,6 +58,15 @@ reset and auto-save will all be attached there, in that order.
 ### Player & camera ✅
 Analog 8-way movement at 80 px/s (5 tiles/s) with acceleration/friction; 4-way facing.
 Camera is smoothed and limited to the map. *Next:* movement classes for mounts; run/stamina (Farming epic).
+
+### Save / load ✅ (v1)
+JSON slots with atomic writes and a backup; format v2 with `meta` for a future load screen; tested
+v1 → v2 migration from a real fixture; restart-tested in two processes. Auto-save on sleep; the game
+continues from slot 1 on start. See `TECHNICAL_DESIGN.md` §9.
+
+### Maps & transitions ✅ (blockouts)
+Farm ⇄ village, farm ⇄ forest. One persistent Player node. Exits and spawns are data. Every map is
+checked automatically for on-foot reachability. See `TECHNICAL_DESIGN.md` §6.3.
 
 ### Interaction ✅
 Front-facing probe; closest enabled interactable wins; HUD prompt shows the interact key and the

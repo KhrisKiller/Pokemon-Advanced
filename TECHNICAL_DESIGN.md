@@ -22,20 +22,26 @@ project.godot            Godot project (root = res://)
 CLAUDE.md, *.md          Design and technical docs (root, as required)
 docs/history/            Superseded material (Design.pdf)
 game/                    ALL code and scenes, grouped by feature (script + scene side by side)
-  core/                  Engine-agnostic services: event bus, time, interaction
-  main/                  Entry scene; composes world + HUD; orchestrates day transitions
+  core/                  Engine-agnostic services: event bus, time, interaction, save, world state
+  main/                  Entry scene; composes world + HUD; map and day transitions; player save section
   characters/player/     Player controller
-  world/                 Maps, map base class, props, tilesets, day/night tint
-  ui/hud/                HUD, clock display, message box, prompt, screen fade
+  characters/npc/        NpcData + Npc (placeholder NPCs)
+  world/                 WorldMap, MapInfo/MapCatalog, MapTransition, maps, props, tilesets, day/night tint
+  ui/hud/                HUD, clock display, message box, prompt, location banner, screen fade
   (creatures/ combat/ tactical/ farming/ inventory/ economy/ dialogue/ quests/
-   progression/ save/ audio/ are created by the phase that implements them)
+   progression/ audio/ are created by the phase that implements them)
 data/                    Content as Godot Resources (.tres). No code.
-  config/                Tunable configs (time_config.tres)
+  config/                Tunable configs (time_config.tres, day_night_gradient.tres)
+  maps/                  MapInfo per map + map_catalog.tres
+  npcs/                  NpcData per NPC
 assets/                  Art and audio source files, grouped by kind
   placeholder/           Generated placeholder art (see tools/). Replaced during Phase 10.
-tests/                   Headless test runner + unit/integration tests
-tools/                   Dev tools: Godot installer, placeholder art and test map generators
-.github/workflows/       CI (headless tests)
+tests/                   Headless test runner, unit/ and integration/ tests, fixtures/saves/,
+                         persistence/ (two-process restart test)
+tools/                   Dev tools: Godot installer, placeholder art, map builder (+ maps/*.txt layouts),
+                         screenshot tour
+spikes/                  ISOLATED prototypes, never referenced by game/ (tactical/ in Phase 2)
+.github/workflows/       CI (tests, restart test, spike tests)
 ```
 
 **Deviations from the suggested structure (and why)**
@@ -47,6 +53,8 @@ tools/                   Dev tools: Godot installer, placeholder art and test ma
 3. Empty feature folders are **not** pre-created (git doesn't track them and they hide real status).
    The suggested folders are created by the phase that implements them.
 4. Added `tests/`, `tools/`, `data/config/`, `assets/placeholder/`.
+5. Added `spikes/` for throwaway prototypes that answer one design question. Rules: no `class_name`,
+   no autoloads, nothing in `game/` may reference them. A spike is rewritten, never promoted.
 
 ## 3. Architectural principles
 
@@ -279,21 +287,30 @@ tactical system uses the same movement class vocabulary for terrain costs.
 
 ## 11. Testing [implemented]
 
-- Runner: `godot --headless --path . res://tests/test_runner.tscn [-- --filter=<text>]` (running a
-  scene means autoloads and project settings load exactly as in the game). It exits with code 0 on
-  success and 1 on any failure.
+- Runner: `godot --headless --path . res://tests/test_runner.tscn [-- --filter=<text>] [--dir=<res://dir>]`
+  (running a scene means autoloads and project settings load exactly as in the game). It exits with
+  code 0 on success and 1 on any failure, and fails fast if an autoload failed to load.
+- Isolation: before every test the runner points `SaveService` at `user://test_saves` and wipes it,
+  and resets `WorldState`.
 - A test also fails if **any engine or script error** is logged while it runs. The runner installs a
   `Logger` (Godot 4.5+ API), so runtime errors such as a null call can't pass silently.
 - `tests/framework/test_case.gd` (`TestCase`): `before_each`/`after_each`, `assert_eq`,
   `assert_true`, `assert_false`, `assert_almost_eq`, `assert_not_null`, plus helpers to add nodes and await
   physics frames. Every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd` is run.
-- Unit tests cover pure logic (time, save format and migrations, world state). Integration tests instantiate real scenes headlessly (player
-  movement against collision, interaction, the sleep flow, the main scene booting).
-- CI: `.github/workflows/tests.yml` installs the pinned Godot, imports, and runs the suite.
-- Visual check: `tools/capture_screenshots.tscn` plays a scripted session of the real game (wake up,
-  walk out, read the sign, evening, night, sleep) and saves screenshots. It needs a display
-  (`xvfb-run` on servers).
-- Current suite: 46 tests (23 unit, 23 integration).
+- Unit tests cover pure logic (time, save format and migrations, world state). Integration tests
+  instantiate real scenes headlessly: movement against collision, interaction, sleep flow, save/load
+  through `Main`, migration from a real v1 file, map validation (exit graph and on-foot
+  reachability), map transitions (including real walking through an exit), and NPCs.
+- **Restart test:** `tests/persistence/run_restart_test.sh` saves in one Godot process (in the village,
+  day 3) and verifies in a fresh process. It fails on any check or engine error.
+- **Save fixtures:** `tests/fixtures/saves/*.json` are real files written by older formats. Every
+  fixture must upgrade and load.
+- CI: `.github/workflows/tests.yml` installs the pinned Godot, imports, runs the suite, the restart
+  test and the spike tests.
+- Visual check: `tools/capture_screenshots.tscn` plays a scripted tour of the real game (farm, sign,
+  village, Tamsin, forest, Odile, night) and saves screenshots. It needs a display (`xvfb-run` on
+  servers) and uses its own save directory.
+- Current suite: 111 tests (46 unit, 65 integration) + the restart test + 18 spike tests.
 
 ## 12. Multiplayer readiness (not implemented)
 

@@ -9,8 +9,8 @@
 | --- | --- | --- | --- |
 | 0 | Pre-production & architecture | All foundation docs exist and agree | ✅ |
 | 1 | Basic Godot project | Project boots; player walks a test map with camera, interaction and a day clock; tests run in CI | ✅ |
-| 2 | Player & world | Map transitions, farm + village + forest blockouts, NPC placeholders, **save/load v1** | ⏳ next |
-| 3 | Basic farming | Till → plant → water → sleep → grow → harvest → sell loop, with saves | ⏳ |
+| 2 | Player & world | Save/load across restarts with a tested migration; transitions between farm, village and forest blockouts; 2 placeholder NPCs; tactical spike isolated | ✅ |
+| 3 | Basic farming | Till → plant → water → sleep → grow → harvest → sell loop, with saves | ⏳ next (needs owner approval) |
 | 4 | Basic creature system | Kith data, instances, retinue, feeding/trust, one utility action | ⏳ |
 | 5 | Creature battle | Wild 1v1 battle + bonding from an overworld encounter | ⏳ |
 | 6 | Exploration | Utility gates, Loamox haul + mount, Sunken Kiln dungeon | ⏳ |
@@ -19,8 +19,9 @@
 | 9 | Vertical slice | 30–60 minute slice playable by a stranger without help | ⏳ |
 | 10 | Polish & expansion | Art pass, audio, balance, then the next region | ⏳ |
 
-**Risk-first rule:** the tactical prototype (Phase 7) may start a greybox spike during Phase 4–5 if
-the team wants to de-risk it earlier (see "Risks" below).
+**Risk-first rule:** the riskiest system (tactical combat) was spiked early, in Phase 2, as an isolated
+prototype (`spikes/tactical/`). Its verdict (proceed / iterate / fall back) comes from the owner's
+evaluation and decides how Phase 7 is scoped.
 
 ## Risks
 
@@ -72,26 +73,30 @@ the team wants to de-risk it earlier (see "Risks" below).
 
 ## EPIC: SAVE
 
-### Milestone: Save v1 (Phase 2)
-- [ ] `SaveService` autoload with provider registration (`get_save_id/to_save_data/load_save_data`)
-- [ ] JSON slot files + meta file, versioned sections, migration hook
-- [ ] Providers: clock, player (map + position + facing)
-- [ ] Auto-save at the end of the day transition
-- [ ] Load from title/continue
-- [ ] Tests: round trip, missing section tolerance, version migration
+### Milestone: Save v1 (Phase 2) ✅
+- [x] `SaveService` autoload with provider registration (`get_save_id/to_save_data/load_save_data`)
+- [x] JSON slot files, atomic writes, `.bak` fallback, `meta` block (format v2) for a future load screen
+- [x] File-format migrations (`SaveMigrations`, v1 → v2) + section-level versions (player v1 → v2)
+- [x] Providers: clock, world (flags, discovered locations), player (map + position + facing)
+- [x] Auto-save at the end of the day transition; debug quicksave/quickload (F5/F9)
+- [x] Continue from slot 1 on start (no title screen yet; see UI)
+- [x] Tests: round trip, missing sections, corrupt file → backup, unsupported version, real v1 fixture migration, game boot from v1, **two-process restart test**
 
-### Milestone: Save v2 (Phases 3–8)
-- [ ] Providers: inventory, money, farm plots, kith instances, NPC relationships, quests, world state, discovered locations, decisions
+### Milestone: Save coverage (Phases 3–8)
+- [ ] Providers: inventory, money, farm plots, kith instances, NPC relationships, quests, war state, decisions
 
 ## EPIC: WORLD
 
-### Milestone: World structure (Phase 2)
-- [ ] Map transition triggers + `SceneRouter` (fade, spawn point by id)
-- [ ] Blockouts: Wrenfield farm, Brambleford village, Whisperwood (placeholder tiles)
-- [ ] Farmhouse interior
-- [ ] Map registry data (id, display name, region, music)
-### Milestone: World state (Phase 8)
-- [ ] `WorldState` (flags, counters, war tension, route status) + save provider
+### Milestone: World structure (Phase 2) ✅
+- [x] Map transition triggers (`MapTransition`) + transition flow in `Main` (fade, spawn by id, same Player node)
+- [x] Blockouts: Wrenfield farm, Brambleford village, Whisperwood (ASCII layouts → scenes)
+- [x] Map registry data (`MapInfo`/`MapCatalog`: id, display name, scene path, region)
+- [x] Automated navigability checks (exit graph, on-foot reachability)
+- [ ] Farmhouse interior (the house is a roofless blockout for now) — later phase
+- [ ] Per-map music id in `MapInfo` — with the audio work
+### Milestone: World state (Phases 2 → 8)
+- [x] `WorldState` flags (bool/int/String), counters, discovered locations + save provider (Phase 2)
+- [ ] War tension, faction control, route status
 - [ ] `WorldEvent` resources evaluated in the daily tick
 - [ ] Slice events: surveyors arrive (day 3), bridge skirmish (day 4), outcome flags
 
@@ -144,6 +149,11 @@ the team wants to de-risk it earlier (see "Risks" below).
 
 ## EPIC: TACTICAL
 
+### Milestone: Tactical spike (Phase 2, isolated) ✅ — awaiting owner evaluation
+- [x] `spikes/tactical/`: 10×8 grid, 2v2, movement, attack + counters, terrain modifiers, hold objective, victory/defeat
+- [x] Rule tests (separate CI step) and bot simulation (skill-driven: random 0 %, greedy 100 %)
+- [ ] Owner playtest using the protocol in `spikes/tactical/README.md`, then a verdict
+
 ### Milestone: Tactical prototype (Phase 7)
 - [ ] `TacticalMapData`, `TerrainData` (defence, move costs per class)
 - [ ] Grid rendering, cursor, camera
@@ -175,8 +185,10 @@ the team wants to de-risk it earlier (see "Risks" below).
 ## EPIC: NPC
 
 ### Milestone: NPC MVP (Phase 2 placeholders → Phase 8 schedules)
-- [ ] `NpcData` resources for the 5 slice NPCs
-- [ ] Talk interaction; data-driven dialogue with conditions (replace the Phase 1 message queue)
+- [x] Minimal NPC architecture: `NpcData` + `Npc` interactable (identity, position, talk, placeholder lines) (Phase 2)
+- [x] 2 placeholder NPCs: Tamsin (village), Odile (forest); "met" remembered via world flag (Phase 2)
+- [ ] `NpcData` for the remaining slice NPCs
+- [ ] Data-driven dialogue with conditions (replaces the placeholder line lists)
 - [ ] Schedules (day/time → location) with world-state overrides
 - [ ] Relationship points + gifts by tag
 - [ ] War-reactive dialogue sets
@@ -215,7 +227,8 @@ the team wants to de-risk it earlier (see "Risks" below).
 - [x] Interaction prompt with the bound key
 - [x] Message box (modal, pauses time)
 - [x] Screen fade
-- [ ] Pause menu (resume, save, settings, quit) (Phase 2)
+- [x] Location banner on map change; speaker name tag in the message box (Phase 2)
+- [ ] Title screen (continue / new game) and pause menu (resume, save, settings, quit) — not in the Phase 2 priority list; Phase 3
 - [ ] Inventory/hotbar (Phase 3), kith party screen (Phase 4), battle UI (Phase 5), tactical UI (Phase 7)
 - [ ] Pixel font + UI theme resource (Phase 10 at latest)
 - [ ] Controller glyphs

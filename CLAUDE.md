@@ -27,6 +27,9 @@ tools/install_godot.sh                            # installs pinned Godot 4.7.2 
 godot --headless --path . --import                # (re)import assets, build class cache — run after adding files
 godot --headless --path . res://tests/test_runner.tscn   # run all tests (exit code 0 = pass)
 godot --headless --path . res://tests/test_runner.tscn -- --filter=clock   # run test files whose path contains "clock"
+tests/persistence/run_restart_test.sh             # save in one process, load in another (persistence across restarts)
+godot --headless --path . res://tests/test_runner.tscn -- --dir=res://spikes/tactical/tests   # spike tests only
+godot --path . res://spikes/tactical/tactical_spike.tscn                   # play the isolated tactical spike
 godot --path .                                    # run the game (needs a display)
 godot --headless --path . --script res://tools/generate_placeholder_art.gd  # regenerate placeholder PNGs (then --import)
 godot --headless --path . res://tools/build_maps.tscn                       # rebuild tileset + all blockout maps from tools/maps/*.txt
@@ -74,7 +77,21 @@ commit `.godot/`.
 - Tests: add `tests/unit/test_<thing>.gd` or `tests/integration/test_<thing>.gd` extending `TestCase`;
   every `test_*` method runs automatically. Pure logic gets unit tests; scenes get integration tests.
 
+## Saves and spikes
+
+- Changing what a provider saves: bump that section's `"version"` and keep reading the old one.
+  Changing the file envelope: add a `SaveMigrations` step, bump `SaveFormat.CURRENT_VERSION`, and
+  commit a fixture written by the **old** code to `tests/fixtures/saves/`. Never edit old steps or fixtures.
+- `spikes/` holds isolated prototypes. No `class_name`, no autoloads, and never reference them from
+  `game/`. A spike is rewritten for production, never promoted.
+
 ## Current phase
 
-Phase 1 (basic Godot project) is done. **Next: Phase 2** — map transitions, farm/village/forest
-blockouts, save/load v1. Do not start farming, kith, combat or war until the owner approves moving on.
+Phase 2 (player & world) is done: save/load v1 with migrations, map transitions, farm/village/forest
+blockouts, 2 placeholder NPCs, an isolated tactical spike awaiting the owner's evaluation.
+**Next: Phase 3 (basic farming), only after the owner approves.** Do not start creatures, farming,
+full combat, war systems or mass content without explicit approval.
+
+Provisional (keep, don't expand the lore): kith, bonding, Bond Charm, Sera, Lowmere Vale, Aurelian
+Crown, Thornwood Compact, the Greying, the 6:00–2:00 day, ~14 real minutes per day, balance formulas,
+aspect chart.
