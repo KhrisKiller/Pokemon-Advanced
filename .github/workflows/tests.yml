@@ -20,3 +20,5 @@ jobs:
         run: godot --headless --path . res://tests/test_runner.tscn
       - name: Restart persistence test (save in one process, load in another)
         run: tests/persistence/run_restart_test.sh
+      - name: Tactical spike tests (isolated prototype)
+        run: godot --headless --path . res://tests/test_runner.tscn -- --dir=res://spikes/tactical/tests

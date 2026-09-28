@@ -1,7 +1,8 @@
 extends Node
 ## Headless test runner. Usage:
-##   godot --headless --path . res://tests/test_runner.tscn [-- --filter=<substring>]
-## Runs every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd`.
+##   godot --headless --path . res://tests/test_runner.tscn [-- --filter=<substring>] [--dir=<res://path>]...
+## Runs every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd`, or in the
+## directories given with --dir (e.g. --dir=res://spikes/tactical/tests for the isolated spike).
 ## A test fails on a failed assertion OR on any engine/script error logged while it runs.
 ## Isolation: saves go to `user://test_saves` (wiped before every test) and WorldState is reset.
 ## Exits with code 0 when everything passes, 1 otherwise.
@@ -57,7 +58,7 @@ func _run_all() -> int:
 	var failed: PackedStringArray = []
 	var started := Time.get_ticks_msec()
 
-	for path in _find_test_files():
+	for path in _find_test_files(_get_dirs()):
 		if filter != "" and not path.contains(filter):
 			continue
 		var script: Script = load(path)
@@ -108,9 +109,9 @@ func _run_test(script: Script, method: String) -> PackedStringArray:
 	return errors
 
 
-func _find_test_files() -> PackedStringArray:
+func _find_test_files(dirs: Array[String]) -> PackedStringArray:
 	var files: PackedStringArray = []
-	for dir_path in TEST_DIRS:
+	for dir_path in dirs:
 		var dir := DirAccess.open(dir_path)
 		if dir == null:
 			continue
@@ -128,6 +129,14 @@ func _find_test_methods(script: Script) -> PackedStringArray:
 		if name.begins_with("test_") and not methods.has(name):
 			methods.append(name)
 	return methods
+
+
+func _get_dirs() -> Array[String]:
+	var dirs: Array[String] = []
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--dir="):
+			dirs.append(arg.trim_prefix("--dir="))
+	return dirs if not dirs.is_empty() else TEST_DIRS
 
 
 func _get_filter() -> String:
