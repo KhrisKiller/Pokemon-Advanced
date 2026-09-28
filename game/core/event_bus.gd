@@ -21,3 +21,11 @@ signal sleep_requested(source: Node)
 ## The day transition finished and a new day began. `reason` is `&"slept"` or `&"exhausted"`.
 @warning_ignore("unused_signal")
 signal day_transition_finished(reason: StringName)
+
+## The player stepped into a MapTransition. `Main` runs the map transition.
+@warning_ignore("unused_signal")
+signal map_transition_requested(map_id: StringName, spawn_id: StringName, source: Node)
+
+## A map finished loading and the player is in it.
+@warning_ignore("unused_signal")
+signal map_changed(map_id: StringName)

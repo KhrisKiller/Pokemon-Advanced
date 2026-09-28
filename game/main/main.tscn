@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://game/world/maps/test_map.tscn" id="2_map"]
+[ext_resource type="Resource" path="res://data/maps/map_catalog.tres" id="2_catalog"]
 [ext_resource type="PackedScene" path="res://game/characters/player/player.tscn" id="3_player"]
 [ext_resource type="Script" path="res://game/world/day_night_tint.gd" id="4_tint"]
 [ext_resource type="Gradient" path="res://data/config/day_night_gradient.tres" id="5_gradient"]
@@ -9,7 +9,7 @@
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
-start_map = ExtResource("2_map")
+map_catalog = ExtResource("2_catalog")
 player_scene = ExtResource("3_player")
 
 [node name="World" type="Node2D" parent="."]

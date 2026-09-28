@@ -7,10 +7,12 @@ extends CanvasLayer
 @onready var _time_label: Label = %TimeLabel
 @onready var _prompt_label: Label = %PromptLabel
 @onready var _fade: ColorRect = %Fade
+@onready var _location_label: Label = %LocationLabel
 
 var _prompt_target: Interactable = null
 var _open_modals: Dictionary[StringName, bool] = {}
 var _fade_tween: Tween
+var _location_tween: Tween
 
 
 func _ready() -> void:
@@ -35,6 +37,24 @@ func get_prompt_text() -> String:
 
 func get_clock_text() -> String:
 	return _time_label.text
+
+
+## Briefly shows the name of the area the player just entered.
+func show_location(location_name: String, hold_seconds: float = 2.0) -> void:
+	if location_name == "":
+		return
+	_location_label.text = location_name
+	_location_label.size.x = 0.0  # shrink to fit the new text
+	if _location_tween != null and _location_tween.is_valid():
+		_location_tween.kill()
+	_location_label.modulate.a = 1.0
+	_location_tween = create_tween()
+	_location_tween.tween_interval(hold_seconds)
+	_location_tween.tween_property(_location_label, "modulate:a", 0.0, 0.5)
+
+
+func get_location_text() -> String:
+	return _location_label.text if _location_label.modulate.a > 0.0 else ""
 
 
 func fade_out(duration: float) -> void:

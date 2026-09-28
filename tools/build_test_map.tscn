@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://tools/build_test_map.gd" id="1_tool"]
-
-[node name="BuildTestMap" type="Node"]
-script = ExtResource("1_tool")

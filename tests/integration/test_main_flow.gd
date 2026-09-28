@@ -10,6 +10,7 @@ func before_each() -> void:
 	Clock.setup(load("res://data/config/time_config.tres"))
 	Clock.time_scale = 0.0  # tests drive time explicitly
 	main = MAIN_SCENE.instantiate() as Main
+	main.start_map_id = &"test_map"  # these tests exercise the Phase 1 test map
 	main.fade_duration = 0.0
 	add_to_root(main)
 	await wait_frames(2)

@@ -125,17 +125,41 @@ fade in → wake-up message. This is the single place where "end of day" hooks w
 - `Camera2D` is a child of the player with position smoothing. `WorldMap.apply_camera_limits()` clamps it
   to the map's used rectangle, so the camera never shows outside the map.
 
-### 6.3 Maps [implemented]
+### 6.3 Maps and map transitions [implemented — Phase 2]
 
 - `WorldMap` (`Node2D` base script for every map): `Ground` and `Obstacles` `TileMapLayer`s, a
-  y-sorted `Entities` node (props, NPCs, player) and `Marker2D` spawn points in `SpawnPoints`.
-  API: `get_spawn_position(id)`, `add_entity(node)`, `get_bounds()`, `apply_camera_limits(camera)`.
-- Tiles: `game/world/tilesets/placeholder_tileset.tres` (physics layer 0 → `world`, physics layer
-  1 → `water`).
-- The test map `game/world/maps/test_map.tscn` (48×30 tiles: house with bed, sign, crate, pond,
-  fenced tilled field, paths, tree border) is **generated** by `tools/build_test_map.tscn` from an
-  ASCII layout, then committed as a normal scene. It can be opened and painted in the editor; the
-  generator is only a bootstrap. Future maps are authored in the editor.
+  y-sorted `Entities` node (props, NPCs, player), `Marker2D` spawn points in `SpawnPoints`, and
+  `MapTransition` areas in `Transitions`. API: `get_spawn_position(id)`, `add_entity(node)`,
+  `get_bounds()`, `apply_camera_limits(camera)`. Every map scene declares its `map_id`.
+- **Map data:** `MapInfo` resources (`data/maps/<id>.tres`: id, display name, scene *path*, region)
+  listed in `MapCatalog` (`data/maps/map_catalog.tres`). Code refers to maps only by id. Adding a map
+  means a scene plus a `MapInfo` plus a catalog entry, with no code change.
+- **Exits:** `MapTransition` (`Area2D`, layer 7 `triggers`, mask `player`) holds only
+  `target_map_id` and `target_spawn_id`. On `body_entered` by the Player it emits
+  `EventBus.map_transition_requested(map_id, spawn_id, source)`.
+- **Transition flow (owned by `Main`):** ignore the request unless `source` belongs to the current map
+  → defer out of the physics callback → modal lock and clock pause → fade out →
+  `change_map(id, spawn)` → fade in → release → HUD location banner. `change_map` detaches the old map
+  immediately, since only queue-freeing it let its triggers fire again (a bug caught by a test). It
+  keeps the **same Player node**, positions it before it enters the new map's physics, updates camera
+  limits, marks the location discovered in `WorldState` and emits `EventBus.map_changed`.
+- **Home:** after a collapse (curfew) the player wakes at `home_map_id`/`home_spawn_id` (the farm bed)
+  from any map.
+- **Areas (blockouts, Phase 2):** `farm` (Wrenfield, 50×32: farmhouse and bed, road with west/east
+  exits, fenced tilled field, pond), `village` (Brambleford, 54×36: cobbled plaza, 8 blockout
+  buildings with signs, railway, east exit), `forest` (Whisperwood, 60×40: winding paths, tall-grass
+  patches for future habitats, river with bridges, Mirelight Pond, a log blocking the path to a mud
+  flat and the Sunken Kiln ruin, which are future gates). Connections: village ⇄ farm ⇄ forest.
+  `test_map` stays in the catalog for tests and experiments.
+- **Blockout pipeline:** layouts are ASCII files `tools/maps/<id>.txt` (one character per 16 px
+  cell). `tools/build_maps.tscn` turns them, plus a per-map marker config (spawns, exits, props,
+  signs, reserved cells), into `game/world/maps/<id>.tscn` and the shared placeholder tileset. While
+  maps are blockouts, edit the `.txt` and rebuild. Once a map gets final art, it moves to editor
+  painting and leaves the tool.
+- **Validation:** `tests/integration/test_world_maps.gd` checks every catalog map: ids match, exits
+  lead to real spawns with a way back, every area is reachable from the farm, spawns are clear of
+  exits, and every spawn, exit and interactable is reachable **on foot**. The last check is a flood
+  fill over the real tile collision data.
 
 ### 6.4 Interaction [implemented]
 
@@ -286,3 +310,6 @@ discrete points (day transitions, battle turns).
 | D9 | Movement ≠ Speed stat in tactics | Derive move from Speed | Keeps the two combat systems independently balanceable |
 | D10 | Dev tools that touch game scripts run as scenes | `--script` SceneTree tools | Autoloads don't exist in `--script` mode, so dependent scripts fail to compile |
 | D11 | Time pauses during modals via reason-keyed requests | A single `paused` bool | Independent systems (dialogue, fades, menus) can't un-pause each other |
+| D12 | Maps addressed by id through a data catalog | Exits holding `PackedScene` references | No map-specific code; lazy loading; saves store ids; cyclic scene references avoided |
+| D13 | One persistent Player node moved between maps | Re-instantiate the player per map | Player state (facing, future inventory/party links) survives transitions without copying |
+| D14 | Blockout maps generated from ASCII layouts | Paint blockouts in the editor | Diffable, reviewable in PRs, trivially rebuilt when the tileset changes; editor painting starts with final art |

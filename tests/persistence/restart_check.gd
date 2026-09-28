@@ -7,6 +7,7 @@ extends Node
 const SAVE_DIR := "user://restart_test"
 const MAIN_SCENE := "res://game/main/main.tscn"
 
+const EXPECTED_MAP := &"village"
 const EXPECTED_POSITION := Vector2(312, 264)
 const EXPECTED_FACING := Vector2.RIGHT
 const EXPECTED_DAY := 3
@@ -51,6 +52,8 @@ func _write() -> void:
 	SaveService.delete_all_saves()
 	var main := await _boot()
 	_check(Clock.time.day_index == 0, "write phase must start a new game")
+	_check(main.current_map.map_id == &"farm", "new game must start on the farm")
+	_check(main.change_map(EXPECTED_MAP, &"from_farm"), "could not change map")
 	for i in EXPECTED_DAY:
 		Clock.end_day()
 	Clock.advance_minutes(EXPECTED_MINUTE - 360)
@@ -58,20 +61,20 @@ func _write() -> void:
 	main.player.set_facing(EXPECTED_FACING)
 	WorldState.set_flag(EXPECTED_FLAG)
 	WorldState.increment(EXPECTED_COUNTER, 41)
-	WorldState.discover_location(main.current_map.map_id)
 	_check(SaveService.save_game(main.save_slot) == OK, "save_game returned an error")
 
 
 func _verify() -> void:
 	_check(SaveService.has_save(1), "no save found from the write phase")
 	var main := await _boot()
+	_check(main.current_map.map_id == EXPECTED_MAP, "map %s" % main.current_map.map_id)
 	_check(main.player.global_position == EXPECTED_POSITION, "position %s" % main.player.global_position)
 	_check(main.player.facing == EXPECTED_FACING, "facing %s" % main.player.facing)
 	_check(Clock.time.day_index == EXPECTED_DAY, "day %d" % Clock.time.day_index)
 	_check(Clock.time.minute_of_day == EXPECTED_MINUTE, "minute %d" % Clock.time.minute_of_day)
 	_check(WorldState.has_flag(EXPECTED_FLAG), "flag missing")
 	_check(WorldState.get_flag(EXPECTED_COUNTER) == 41, "counter %s" % str(WorldState.get_flag(EXPECTED_COUNTER)))
-	_check(WorldState.is_discovered(main.current_map.map_id), "discovered location missing")
+	_check(WorldState.is_discovered(&"farm") and WorldState.is_discovered(EXPECTED_MAP), "discovered locations missing")
 	_check(main.hud.get_clock_text() == Clock.time.format_clock(), "HUD not refreshed after load")
 	SaveService.delete_all_saves()
 

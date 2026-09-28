@@ -29,7 +29,7 @@ godot --headless --path . res://tests/test_runner.tscn   # run all tests (exit c
 godot --headless --path . res://tests/test_runner.tscn -- --filter=clock   # run test files whose path contains "clock"
 godot --path .                                    # run the game (needs a display)
 godot --headless --path . --script res://tools/generate_placeholder_art.gd  # regenerate placeholder PNGs (then --import)
-godot --headless --path . res://tools/build_test_map.tscn                   # regenerate tileset + test map scene
+godot --headless --path . res://tools/build_maps.tscn                       # rebuild tileset + all blockout maps from tools/maps/*.txt
 xvfb-run -a godot --path . --rendering-driver opengl3 res://tools/capture_screenshots.tscn -- --out=/tmp/shots
                                                   # play a scripted session and save screenshots (visual check)
 ```
@@ -52,7 +52,11 @@ commit `.godot/`.
 | `game/core/interaction/` | `Interactable`, `InteractionProbe` |
 | `game/main/` | Entry scene; spawns map + player; owns the day-transition flow |
 | `game/characters/player/` | `Player` controller + camera |
-| `game/world/` | `WorldMap` base, `DayNightTint`, maps, props, tileset |
+| `game/world/` | `WorldMap`, `MapInfo`/`MapCatalog`, `MapTransition`, `DayNightTint`, maps, props, tileset |
+| `game/core/save/` | `SaveService` (autoload), `SaveFormat`, `SaveMigrations` |
+| `game/core/world_state.gd` | `WorldState` autoload: flags, discovered locations |
+| `data/maps/` | `MapInfo` per map + `map_catalog.tres` |
+| `tools/maps/` | ASCII blockout layouts (source of truth for blockout maps) |
 | `game/ui/hud/` | HUD, clock display, message box, prompt, fade |
 | `data/config/` | Tunables (`time_config.tres`) |
 | `tests/` | Runner scene, `TestCase`, `unit/`, `integration/` |

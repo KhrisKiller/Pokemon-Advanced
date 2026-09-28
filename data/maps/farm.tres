@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MapInfo" format=3]
+
+[ext_resource type="Script" path="res://game/world/map_info.gd" id="1_info"]
+
+[resource]
+script = ExtResource("1_info")
+id = &"farm"
+display_name = "Wrenfield"
+scene_path = "res://game/world/maps/farm.tscn"
+region = &"lowmere_vale"

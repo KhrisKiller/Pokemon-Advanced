@@ -9,10 +9,12 @@ extends SceneTree
 const OUT_DIR := "res://assets/placeholder"
 const T := 16  # tile size
 
-## Tile atlas order. Keep in sync with PlaceholderTiles (game/world/placeholder_tiles.gd).
+## Tile atlas order. Keep in sync with the Tile enum in tools/build_maps.gd.
+## Only ever APPEND: existing maps store atlas coordinates.
 const TILE_NAMES := [
 	"grass", "grass_alt", "path", "tilled", "water", "floor", "flowers",
 	"wall", "fence", "tree", "rock",
+	"cobble", "tall_grass", "mud", "bridge", "rail", "roof", "log",
 ]
 
 const C := {
@@ -30,6 +32,11 @@ const C := {
 	"shirt_dark": Color("2e6b67"), "pants": Color("3d4a6b"), "outline": Color("2a2320"),
 	"blanket": Color("b8574a"), "blanket_dark": Color("8f3f35"), "pillow": Color("f1eadb"),
 	"paper": Color("efe3c2"),
+	"cobble": Color("a39e94"), "cobble_dark": Color("857f75"),
+	"tall_grass": Color("3f7f36"), "tall_grass_light": Color("5f9e4a"),
+	"mud": Color("6b5234"), "mud_light": Color("836845"),
+	"rail": Color("6d6d72"), "sleeper": Color("6a4a2c"), "gravel": Color("9c9489"),
+	"roof": Color("9a4b3c"), "roof_dark": Color("7a372b"), "roof_light": Color("b5624f"),
 }
 
 
@@ -40,6 +47,8 @@ func _init() -> void:
 	_save(_make_sign(), "sign.png")
 	_save(_make_bed(), "bed.png")
 	_save(_make_crate(), "crate.png")
+	_save(_make_person({"shirt": Color("7a5a9e"), "shirt_dark": Color("5c4379"), "hair": Color("b9b3a8")}), "npc_tamsin.png")
+	_save(_make_person({"shirt": Color("5f8f3e"), "shirt_dark": Color("466c2d"), "hair": Color("2f2a24"), "skin": Color("c79a73")}), "npc_odile.png")
 	print("Placeholder art written to %s" % OUT_DIR)
 	quit()
 
@@ -129,6 +138,46 @@ func _make_tiles() -> Image:
 				_rect(img, ox + 3, 4, 10, 1, C.rock)
 				_rect(img, ox + 4, 5, 5, 2, C.rock_light)
 				_rect(img, ox + 2, 13, 12, 1, C.rock_dark)
+			"cobble":
+				_rect(img, ox, 0, T, T, C.cobble)
+				for row in [0, 8]:
+					_rect(img, ox, row, T, 1, C.cobble_dark)
+				_rect(img, ox + 5, 0, 1, 8, C.cobble_dark)
+				_rect(img, ox + 12, 0, 1, 8, C.cobble_dark)
+				_rect(img, ox + 2, 8, 1, 8, C.cobble_dark)
+				_rect(img, ox + 9, 8, 1, 8, C.cobble_dark)
+			"tall_grass":
+				_rect(img, ox, 0, T, T, C.tall_grass)
+				for x in [1, 4, 7, 10, 13]:
+					_rect(img, ox + x, 3 + x % 3, 1, 8, C.tall_grass_light)
+					_rect(img, ox + x + 1, 6 + x % 4, 1, 6, C.tall_grass_light)
+			"mud":
+				_rect(img, ox, 0, T, T, C.mud)
+				_rect(img, ox + 2, 3, 5, 2, C.mud_light)
+				_rect(img, ox + 9, 10, 4, 2, C.mud_light)
+			"bridge":
+				_rect(img, ox, 0, T, T, C.wood)
+				for row in [3, 7, 11, 15]:
+					_rect(img, ox, row, T, 1, C.wood_dark)
+				_rect(img, ox, 0, 1, T, C.wood_dark)
+				_rect(img, ox + 15, 0, 1, T, C.wood_dark)
+			"rail":
+				_rect(img, ox, 0, T, T, C.gravel)
+				for row in [1, 6, 11]:
+					_rect(img, ox, row, T, 3, C.sleeper)
+				_rect(img, ox, 4, T, 1, C.rail)
+				_rect(img, ox, 11, T, 1, C.rail)
+			"roof":
+				_rect(img, ox, 0, T, T, C.roof)
+				for row in [3, 7, 11, 15]:
+					_rect(img, ox, row, T, 1, C.roof_dark)
+				_rect(img, ox, 0, T, 1, C.roof_light)
+			"log":
+				_rect(img, ox, 5, T, 8, C.wood)
+				_rect(img, ox, 5, T, 1, C.wood_light)
+				_rect(img, ox, 12, T, 1, C.wood_dark)
+				_rect(img, ox + 12, 5, 4, 8, C.wood_light)
+				_rect(img, ox + 13, 7, 2, 4, C.wood_dark)
 	return img
 
 
@@ -136,27 +185,34 @@ func _make_tiles() -> Image:
 
 ## 4 frames of 16×24, facing: down, up, left, right.
 func _make_player() -> Image:
+	return _make_person({})
+
+
+## Same body as the player with palette overrides (placeholder NPCs).
+func _make_person(overrides: Dictionary) -> Image:
+	var P := C.duplicate()
+	P.merge(overrides, true)
 	var img := _new_image(16 * 4, 24)
 	for f in 4:
 		var ox := f * 16
-		_rect(img, ox + 5, 20, 2, 3, C.pants)  # legs
-		_rect(img, ox + 9, 20, 2, 3, C.pants)
-		_rect(img, ox + 4, 12, 8, 8, C.shirt)  # body
-		_rect(img, ox + 4, 18, 8, 2, C.shirt_dark)
-		_rect(img, ox + 4, 3, 8, 9, C.skin)  # head
-		_rect(img, ox + 4, 2, 8, 3, C.hair)
+		_rect(img, ox + 5, 20, 2, 3, P.pants)  # legs
+		_rect(img, ox + 9, 20, 2, 3, P.pants)
+		_rect(img, ox + 4, 12, 8, 8, P.shirt)  # body
+		_rect(img, ox + 4, 18, 8, 2, P.shirt_dark)
+		_rect(img, ox + 4, 3, 8, 9, P.skin)  # head
+		_rect(img, ox + 4, 2, 8, 3, P.hair)
 		match f:
 			0:  # down: eyes visible
-				img.set_pixel(ox + 6, 8, C.outline)
-				img.set_pixel(ox + 9, 8, C.outline)
+				img.set_pixel(ox + 6, 8, P.outline)
+				img.set_pixel(ox + 9, 8, P.outline)
 			1:  # up: back of the head
-				_rect(img, ox + 4, 2, 8, 9, C.hair)
+				_rect(img, ox + 4, 2, 8, 9, P.hair)
 			2:  # left
-				_rect(img, ox + 8, 2, 4, 7, C.hair)
-				img.set_pixel(ox + 5, 8, C.outline)
+				_rect(img, ox + 8, 2, 4, 7, P.hair)
+				img.set_pixel(ox + 5, 8, P.outline)
 			3:  # right
-				_rect(img, ox + 4, 2, 4, 7, C.hair)
-				img.set_pixel(ox + 10, 8, C.outline)
+				_rect(img, ox + 4, 2, 4, 7, P.hair)
+				img.set_pixel(ox + 10, 8, P.outline)
 	return img
 
 

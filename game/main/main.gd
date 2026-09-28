@@ -1,22 +1,31 @@
 class_name Main
 extends Node
-## Entry scene. Loads the start map, spawns the player, binds the HUD, and owns the
-## day-transition flow (sleep or curfew → next morning).
+## Entry scene and composition root of a play session.
 ##
-## Also the save provider for the "player" section (current map, position, facing). On start it
-## continues from the save slot if one exists; it auto-saves at the end of every day transition.
+## - Loads maps **by id** from the MapCatalog and keeps one persistent Player node that moves
+##   between them (state such as facing is preserved; maps hold no player logic).
+## - Owns the two screen flows: the map transition (MapTransition → fade → swap map → fade) and
+##   the day transition (sleep or curfew → next morning → auto-save).
+## - Save provider for the "player" section (map id, position, facing). On start it continues
+##   from `save_slot` if a save exists.
 ##
 ## The day transition is the single place where end-of-day work happens. Later phases add, in
 ## this order: crop growth, world tick, NPC schedule reset — all before the auto-save
 ## (see TECHNICAL_DESIGN.md §6.1).
 
 const TRANSITION_MODAL := &"day_transition"
+const TRAVEL_MODAL := &"map_transition"
 const REASON_SLEPT := &"slept"
 const REASON_EXHAUSTED := &"exhausted"
 
-@export var start_map: PackedScene
+@export var map_catalog: MapCatalog
 @export var player_scene: PackedScene
+## Where a new game begins.
+@export var start_map_id: StringName = &"farm"
 @export var start_spawn: StringName = &"Default"
+## Where the player wakes up after collapsing (curfew).
+@export var home_map_id: StringName = &"farm"
+@export var home_spawn_id: StringName = &"Default"
 ## Seconds for each half of the fade.
 @export var fade_duration: float = 0.6
 @export var save_slot: int = 1
@@ -32,11 +41,12 @@ var _transitioning := false
 
 
 func _ready() -> void:
-	load_map(start_map, start_spawn)
+	change_map(start_map_id, start_spawn)
 	EventBus.sleep_requested.connect(_on_sleep_requested)
+	EventBus.map_transition_requested.connect(_on_map_transition_requested)
 	Clock.curfew_reached.connect(_on_curfew_reached)
-	# Main is the composition root of a play session, so it decides what gets saved.
-	# Sections load in this order: time, world, then the player (which may change the map).
+	# Main decides what a play session saves. Sections load in this order: time, world, then the
+	# player (which may change the map).
 	for provider: Object in [Clock, WorldState, self]:
 		SaveService.register(provider)
 	if load_save_on_start and SaveService.has_save(save_slot):
@@ -48,47 +58,101 @@ func _exit_tree() -> void:
 		SaveService.unregister(provider)
 
 
-func load_map(map_scene: PackedScene, spawn_id: StringName) -> void:
+# --- maps ------------------------------------------------------------------------------------
+
+## Immediately replaces the current map and places the player at `spawn_id`.
+## Returns false (and keeps the current map) if `map_id` is unknown.
+func change_map(map_id: StringName, spawn_id: StringName = &"Default") -> bool:
+	var new_map := map_catalog.instantiate_map(map_id) if map_catalog != null else null
+	if new_map == null:
+		push_warning("Unknown map '%s'." % map_id)
+		return false
+	if new_map.map_id != map_id:
+		push_warning("Map scene for '%s' declares map_id '%s'." % [map_id, new_map.map_id])
 	if current_map != null:
+		# Detach right away (not just queue_free) so the old map's triggers can't fire again.
+		current_map.entities.remove_child(player)
+		world.remove_child(current_map)
 		current_map.queue_free()
-	current_map = map_scene.instantiate() as WorldMap
+	current_map = new_map
 	world.add_child(current_map)
-	if player == null:
+	var first_spawn := player == null
+	if first_spawn:
 		player = player_scene.instantiate() as Player
-		current_map.add_entity(player)
-		hud.bind_player(player)
-	else:
-		player.reparent(current_map.entities)
-	player.global_position = current_map.get_spawn_position(spawn_id)
+	# Maps share the world origin: place the player before it enters the new map's physics.
+	player.position = current_map.get_spawn_position(spawn_id)
+	player.velocity = Vector2.ZERO
+	current_map.add_entity(player)
+	if first_spawn:
+		hud.bind_player(player)  # after entering the tree, so the player's @onready nodes exist
 	current_map.apply_camera_limits(player.camera)
 	player.camera.reset_smoothing()
+	WorldState.discover_location(map_id)
+	EventBus.map_changed.emit(map_id)
+	return true
 
 
 func is_transitioning() -> bool:
 	return _transitioning
 
 
-## Fades out, advances to the next morning, fades in, shows a wake-up message.
+## Fades out, changes map, fades in. Ignored while another transition runs.
+func travel_to(map_id: StringName, spawn_id: StringName) -> void:
+	if _transitioning:
+		return
+	if map_catalog == null or not map_catalog.has_map(map_id):
+		push_warning("Cannot travel to unknown map '%s'." % map_id)
+		return
+	_begin_transition(TRAVEL_MODAL)
+	await hud.fade_out(fade_duration)
+	change_map(map_id, spawn_id)
+	await hud.fade_in(fade_duration)
+	_end_transition(TRAVEL_MODAL)
+	hud.show_location(current_map.display_name)
+
+
+func _begin_transition(modal_id: StringName) -> void:
+	_transitioning = true
+	Clock.request_pause(modal_id)
+	EventBus.modal_opened.emit(modal_id)
+
+
+func _end_transition(modal_id: StringName) -> void:
+	Clock.release_pause(modal_id)
+	EventBus.modal_closed.emit(modal_id)
+	_transitioning = false
+
+
+func _on_map_transition_requested(map_id: StringName, spawn_id: StringName, source: Node) -> void:
+	# Only triggers of the map the player is actually in count (ignores stale/removed maps).
+	if source == null or not is_instance_valid(source) or not current_map.is_ancestor_of(source):
+		return
+	# Requests arrive from physics callbacks (body_entered); swapping maps there is not allowed.
+	travel_to.call_deferred(map_id, spawn_id)
+
+
+# --- day transition --------------------------------------------------------------------------
+
+## Fades out, advances to the next morning, auto-saves, fades in, shows a wake-up message.
 func run_day_transition(reason: StringName) -> void:
 	if _transitioning:
 		return
-	_transitioning = true
-	Clock.request_pause(TRANSITION_MODAL)
-	EventBus.modal_opened.emit(TRANSITION_MODAL)
+	_begin_transition(TRANSITION_MODAL)
 	await hud.fade_out(fade_duration)
 
 	Clock.end_day()
 	# Future hooks, in order: farming growth, world tick, NPC schedules — then the auto-save.
 	if reason == REASON_EXHAUSTED:
-		player.global_position = current_map.get_spawn_position(start_spawn)
-		player.camera.reset_smoothing()
+		if current_map.map_id != home_map_id and map_catalog.has_map(home_map_id):
+			change_map(home_map_id, home_spawn_id)
+		else:
+			player.global_position = current_map.get_spawn_position(home_spawn_id)
+			player.camera.reset_smoothing()
 	player.set_facing(Vector2.DOWN)
 	var saved := SaveService.save_game(save_slot) == OK
 
 	await hud.fade_in(fade_duration)
-	Clock.release_pause(TRANSITION_MODAL)
-	EventBus.modal_closed.emit(TRANSITION_MODAL)
-	_transitioning = false
+	_end_transition(TRANSITION_MODAL)
 	EventBus.day_transition_finished.emit(reason)
 	EventBus.dialogue_requested.emit(_wake_up_lines(reason, saved))
 
@@ -113,6 +177,8 @@ func _on_curfew_reached() -> void:
 	run_day_transition(REASON_EXHAUSTED)
 
 
+# --- debug -----------------------------------------------------------------------------------
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not OS.is_debug_build() or _transitioning:
 		return
@@ -131,13 +197,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- persistence (Saveable contract, section "player") ---------------------------------------
 
-func get_save_id() -> StringName:
-	return &"player"
-
-
 ## Player section history: v1 stored `facing` as [x, y] floats; v2 stores a name ("left").
 const PLAYER_SECTION_VERSION := 2
 const FACING_NAMES := {"up": Vector2.UP, "down": Vector2.DOWN, "left": Vector2.LEFT, "right": Vector2.RIGHT}
+
+
+func get_save_id() -> StringName:
+	return &"player"
 
 
 func to_save_data() -> Dictionary:
@@ -155,14 +221,16 @@ func get_save_summary() -> Dictionary:
 
 func load_save_data(data: Dictionary) -> void:
 	var map_id := StringName(str(data.get("map_id", "")))
-	if data.is_empty() or map_id != current_map.map_id:
+	if data.is_empty() or map_catalog == null or not map_catalog.has_map(map_id):
 		if not data.is_empty():
-			push_warning("Saved map '%s' is not available; starting at the default spawn." % map_id)
-		player.global_position = current_map.get_spawn_position(start_spawn)
+			push_warning("Saved map '%s' is not available; starting a new game position." % map_id)
+		change_map(start_map_id, start_spawn)
 		player.set_facing(Vector2.DOWN)
-	else:
-		player.global_position = _to_vector2(data.get("position"), current_map.get_spawn_position(start_spawn))
-		player.set_facing(_read_facing(data))
+		return
+	if map_id != current_map.map_id:
+		change_map(map_id)
+	player.global_position = _to_vector2(data.get("position"), current_map.get_spawn_position())
+	player.set_facing(_read_facing(data))
 	player.velocity = Vector2.ZERO
 	player.camera.reset_smoothing()
 

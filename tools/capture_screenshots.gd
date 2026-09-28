@@ -15,6 +15,8 @@ func _ready() -> void:
 		if arg.begins_with("--out="):
 			_out_dir = arg.trim_prefix("--out=")
 	DirAccess.make_dir_recursive_absolute(_out_dir)
+	SaveService.save_dir = "user://screenshot_saves"  # never touch the player's real saves
+	SaveService.delete_all_saves()
 	_main = load(MAIN_SCENE).instantiate()
 	add_child(_main)
 	await _run()
@@ -23,45 +25,51 @@ func _ready() -> void:
 
 func _run() -> void:
 	await _frames(20)
-	await _shot("01_wake_up_in_house")
+	await _shot("01_farm_wake_up")
 
-	# Walk south out of the door.
+	# Walk south out of the farmhouse door.
 	Input.action_press(&"move_down")
 	await get_tree().create_timer(1.6).timeout
 	Input.action_release(&"move_down")
 	await _frames(20)
-	await _shot("02_walked_outside")
+	await _shot("02_farm_outside")
 
-	# Stand below the welcome sign, facing it.
-	var sign := _main.current_map.entities.get_node("WelcomeSign") as Node2D
+	# Read the farm sign.
+	var sign := _main.current_map.entities.get_node("FarmSign") as Node2D
 	_main.player.global_position = sign.global_position + Vector2(0, 18)
 	_main.player.set_facing(Vector2.UP)
 	_main.player.camera.reset_smoothing()
 	await _frames(10)
 	await _shot("03_interaction_prompt")
-
 	_main.player.try_interact()
 	await _frames(5)
 	await _shot("04_sign_message")
 	_main.hud.message_box.close()
 
-	_set_time(19 * 60)
-	await _frames(5)
-	await _shot("05_evening")
-	_set_time(23 * 60 + 30)
-	await _frames(5)
-	await _shot("06_night")
-
-	# Sleep: walk to the bed and use it.
-	var bed := _main.current_map.entities.get_node("Bed") as Node2D
-	_main.player.global_position = bed.global_position + Vector2(18, -8)
-	_main.player.set_facing(Vector2.LEFT)
+	# Tour the areas through the real transition flow.
+	await _travel(&"village", &"from_farm")
+	await _shot("05_village_arrival")
+	_main.player.global_position = Vector2(27 * 16, 21 * 16)
 	_main.player.camera.reset_smoothing()
 	await _frames(10)
-	await _shot("07_bed_prompt")
-	_main.player.try_interact()
-	await get_tree().create_timer(_main.fade_duration * 2.0 + 0.3).timeout
-	await _shot("08_next_morning")
+	await _shot("06_village_plaza")
+	await _travel(&"forest", &"from_farm")
+	await _shot("07_forest_arrival")
+	_main.player.global_position = Vector2(46 * 16, 12 * 16)
+	_main.player.camera.reset_smoothing()
+	await _frames(10)
+	await _shot("08_forest_pond")
+
+	_set_time(23 * 60 + 30)
+	await _frames(5)
+	await _shot("09_forest_night")
+
+
+func _travel(map_id: StringName, spawn_id: StringName) -> void:
+	_main.travel_to(map_id, spawn_id)
+	while _main.is_transitioning():
+		await get_tree().process_frame
+	await _frames(15)
 
 
 func _set_time(minute_of_day: int) -> void:
