@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://game/world/props/bed_interactable.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/bed.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_area"]
+size = Vector2(22, 36)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(14, 28)
+
+[node name="Bed" type="Area2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -16)
+texture = ExtResource("2_tex")
+
+[node name="InteractionShape" type="CollisionShape2D" parent="."]
+position = Vector2(0, -16)
+shape = SubResource("RectangleShape2D_area")
+
+[node name="Body" type="StaticBody2D" parent="."]
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Body"]
+position = Vector2(0, -16)
+shape = SubResource("RectangleShape2D_body")
