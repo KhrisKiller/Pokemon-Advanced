@@ -6,11 +6,13 @@
 [ext_resource type="Script" path="res://game/world/day_night_tint.gd" id="4_tint"]
 [ext_resource type="Gradient" path="res://data/config/day_night_gradient.tres" id="5_gradient"]
 [ext_resource type="PackedScene" path="res://game/ui/hud/hud.tscn" id="6_hud"]
+[ext_resource type="Resource" path="res://data/config/new_game.tres" id="7_new_game"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
 map_catalog = ExtResource("2_catalog")
 player_scene = ExtResource("3_player")
+new_game = ExtResource("7_new_game")
 
 [node name="World" type="Node2D" parent="."]
 

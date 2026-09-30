@@ -46,6 +46,8 @@ func _run() -> void:
 	await _shot("04_sign_message")
 	_main.hud.message_box.close()
 
+	await _farm_demo()
+
 	# Tour the areas through the real transition flow.
 	await _travel(&"village", &"from_farm")
 	await _shot("05_village_arrival")
@@ -65,6 +67,71 @@ func _run() -> void:
 	_set_time(23 * 60 + 30)
 	await _frames(5)
 	await _shot("09_forest_night")
+
+
+## Till, plant and water five plots, then sleep and water until they're ready; harvest and sell.
+func _farm_demo() -> void:
+	var seeds: Array[StringName] = [&"pipweed_seed", &"pipweed_seed", &"bluecap_seed", &"emberroot_seed", &"pipweed_seed"]
+	for i in seeds.size():
+		while _main.session.player.selected_seed != seeds[i]:
+			_main.session.player.cycle_seed()
+		var id := StringName("farm:%d,23" % (18 + i))
+		for step in 3:  # till, plant, water
+			await _use_plot(id)
+	await _shot("10_farm_planted")
+	for day in 5:
+		await _sleep()
+		if day == 0:
+			await _shot("11_farm_next_morning_dry")
+		for i in 5:
+			var id := StringName("farm:%d,23" % (18 + i))
+			if not _main.session.farm.is_mature(id):
+				await _use_plot(id)
+		if day == 1:
+			await _shot("12_farm_growing")
+	await _shot("13_farm_ready")
+	await _use_plot(&"farm:18,23")
+	await _shot("14_harvest_message")
+	_main.hud.message_box.close()
+	for i in range(1, 5):
+		await _use_plot(StringName("farm:%d,23" % (18 + i)))
+		_main.hud.message_box.close()
+	_main.hud.toggle_inventory()
+	await _frames(3)
+	await _shot("15_bag")
+	_main.hud.toggle_inventory()
+	var crate := _main.current_map.entities.get_node("ShippingCrate") as Node2D
+	_main.player.global_position = crate.global_position + Vector2(0, 16)
+	_main.player.set_facing(Vector2.UP)
+	_main.player.camera.reset_smoothing()
+	await _frames(10)
+	_main.player.try_interact()
+	await _frames(5)
+	await _shot("16_sold")
+	_main.hud.message_box.close()
+
+
+func _use_plot(plot_id: StringName) -> void:
+	for node in _main.current_map.entities.get_children():
+		if node is FarmPlot and node.plot_id == plot_id:
+			_main.player.global_position = node.global_position + Vector2(0, 16)
+			_main.player.set_facing(Vector2.UP)
+			_main.player.camera.reset_smoothing()
+			for i in 3:
+				await get_tree().physics_frame
+			_main.player.try_interact()
+			await _frames(2)
+			return
+
+
+func _sleep() -> void:
+	EventBus.sleep_requested.emit(null)
+	await get_tree().process_frame
+	while _main.is_transitioning():
+		await get_tree().process_frame
+	await _frames(5)
+	_main.hud.message_box.close()
+	await _frames(2)
 
 
 func _talk_to(npc_name: String, shot_name: String) -> void:

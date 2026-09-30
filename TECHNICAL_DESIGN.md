@@ -78,13 +78,18 @@ spikes/                  ISOLATED prototypes, never referenced by game/ (tactica
 | Name | File | Responsibility |
 | --- | --- | --- |
 | `EventBus` | `game/core/event_bus.gd` | Declares global signals only. No state, no logic. |
+| `ContentDB` | `game/core/content_db.gd` | **Read-only** content registry: items and crops by id, from catalog resources (export-safe, no folder scanning). Global because every system reads content, and content never changes at runtime. `validate()` checks cross-references. |
 | `SaveService` | `game/core/save/save_service.gd` | Save slots on disk; provider registry; format upgrades. It has no game knowledge. Listed before `Clock` so it exists first. |
 | `Clock` | `game/core/time/clock.gd` | Owns the `GameTime`; advances it in real time; emits time signals; pause requests. |
 | `WorldState` | `game/core/world_state.gd` | Persistent world facts: typed flags and discovered locations. It is a global because story, NPCs, maps and (later) quests all read it. |
 
 Autoloads do **not** register themselves as save providers. `Main`, the composition root of a play
-session, registers `Clock`, `WorldState` and itself, so a stray instance (for example in a test)
-can never become a duplicate section.
+session, registers `Clock`, `WorldState`, the session's providers (`PlayerState`, `FarmState`) and
+itself, so a stray instance (for example in a test) can never become a duplicate section.
+
+**Mutable session state is not global.** `GameSession` (owned by `Main`) holds the player's
+belongings and the farm. Map nodes in the `session_aware` group receive `bind_session(session)` when
+their map loads (dependency injection, no service locator).
 
 ## 5. Physics layers [implemented]
 
@@ -196,6 +201,51 @@ fade in → wake-up message. This is the single place where "end of day" hooks w
   dialogue. The NPC epic replaces the line lists with the data-driven dialogue system. Because the
   signal carries a speaker and lines, the HUD won't need to change.
 
+### 6.6 Items, inventory and money [implemented — Phase 3]
+
+- `ItemData` (`data/items/<id>.tres`): id, name, description, **tags**, base value (marks), stack
+  size, optional icon. Behaviour comes from tags: `seed`, `crop`, `food`. Listed in
+  `data/items/item_catalog.tres`.
+- `Inventory` (pure `RefCounted`): fixed slots of `{item_id, quantity}`, stack limits from item data,
+  `add` (returns overflow), all-or-nothing `remove`, `space_for`, `count`, JSON round trip. It is the
+  single inventory model: crops now, kith food, materials and trade later. There is no second
+  inventory anywhere.
+- `PlayerState` (pure): `inventory`, `money` (never negative), `selected_seed` (the next carried seed,
+  cycled with **Q**). Save section `player_state`. A missing section applies `NewGameConfig`
+  (`data/config/new_game.tres`: 50 marks, 6 Pipweed, 3 Emberroot and 3 Bluecap seeds).
+- **Economy (placeholder):** `Pricing.sell_price(item, qty)` = base value × quantity. This is the one
+  place the future modifier stack plugs in. `Shipping.sell_all()` sells every carried `crop` item.
+  The `ShippingCrate` by the farmhouse runs it **immediately** (not overnight) and reports what sold.
+- HUD: money under the clock, selected seed bottom-left, a bag panel on **I** (a modal that pauses
+  time).
+
+### 6.7 Farming [implemented — Phase 3]
+
+```
+CropData (data/crops/*.tres)       definition: seed item, produce item + quantity,
+                                   growth_days, regrow_days (0 = single harvest), stage_count, sprite sheet
+CropState  (RefCounted)            instance: crop_id, days_grown, times_harvested
+PlotState  (RefCounted)            tilled, watered (today), crop: CropState | null
+FarmState  (RefCounted, "farm")    all plots by id; till/plant/water/harvest; advance_day()
+FarmActions (static)               the context action for one button: TILL → PLANT → WATER → INSPECT → HARVEST
+FarmPlot   (Interactable node)     presentation only: draws soil/wet/crop stage; forwards interact
+```
+
+- **One clock:** crops only grow in `FarmState.advance_day()`, which `Main` calls in the day transition
+  right after `Clock.end_day()` and before the auto-save. A crop that was watered that day gains 1
+  day; then all soil dries. Unwatered crops don't grow (and don't die, in the MVP). There's no other
+  timer.
+- **Plots are map data:** the map builder turns `p` cells into `FarmPlot` nodes with stable ids
+  `"<map_id>:<x>,<y>"` (20 plots on the farm, on untilled-soil tiles). State lives in the session's
+  `FarmState`, so crops keep growing while the farm map is unloaded.
+- **Regrowth:** after a harvest, a regrowing crop goes back to `growth_days − regrow_days`.
+- **Prompts are dynamic:** `Interactable.get_prompt()` plus the `prompt_changed` signal; the HUD
+  follows them.
+- **Adding a crop:** a `CropData` `.tres`, a seed item and a produce item with the right tags, and
+  catalog entries. `ContentDB.validate()` (in tests) catches broken references. No code changes.
+- **Deliberately not built:** tools (hoe/can), seasons and withering, weather, fertiliser, quality,
+  kith helpers, buying seeds.
+
 ## 7. Creature data architecture [planned — Phase 4]
 
 ```
@@ -236,9 +286,9 @@ resources by `id` (handling `.remap` in exported builds). Gameplay looks up cont
 
 | System | Core types | Notes |
 | --- | --- | --- |
-| Inventory | `ItemData` (Resource: id, name, tags, base_value, stack_max, use effects), `Inventory` (RefCounted: slots of `{item_id, qty}`) | Tags drive food, crafting and selling |
-| Farming | `CropData` (seasons, stages, days per stage, regrow, yields, water need), `FarmPlot` state in a `FarmState` keyed by map + cell | Growth is advanced by the day-transition flow, not in real time |
-| Economy | `PriceService.get_price(item, context)` = base × modifier stack (`PriceModifier` resources: season, region, war tension, relationship) | Vendors are data (`ShopData`) |
+| Inventory | ✅ see §6.6. Later: item use effects, chests, shop stock | Tags drive food, crafting and selling |
+| Farming | ✅ MVP, see §6.7. Later: seasons, tools, kith helpers, fertiliser | Growth only in the daily tick |
+| Economy | 🟡 `Pricing` + `Shipping` (see §6.6). Later: `PriceModifier` stack (season, region, war tension, relationship), vendors as data (`ShopData`), buying | One pricing entry point already exists |
 | Creature battle | Turn-state machine (`BattleController`) over `BattleCreatureState`s; UI separate; actions as command objects | Commands keep it replayable and future multiplayer-friendly |
 | Tactical | `TacticalMapData` (grid, terrain ids, objectives, deployment zones), `TerrainData` (defence, move cost per class), `TacticalBattleState`, `Pathfinder` (Dijkstra over move costs), `TacticalAI` (utility scoring) | Its own scene; returns a `TacticalResult` to the world |
 | NPCs | `NpcData` (identity, gift tastes, schedule sets), `ScheduleEntry` (day/time/location), overrides with `Condition`s | Conditions read `WorldState` |
@@ -263,9 +313,12 @@ resources by `id` (handling `.remap` in exported builds). Gameplay looks up cont
   `load_save_data(data: Dictionary)`. The last must accept `{}` (section missing, which means defaults)
   and older versions of its own section. Values must be JSON-safe. Only ids and values are saved,
   never node or resource paths.
-- **Sections today:** `clock` (day index, minute), `world` (flags, discovered locations), `player`
-  (map id, position, facing). They load in registration order: time, world, then the player (who may
-  change the map).
+- **Sections today:** `clock` (day index, minute), `world` (flags, discovered locations),
+  `player_state` (money, inventory slots, selected seed), `farm` (every plot: tilled, watered, crop id,
+  days grown, times harvested), `player` (map id, position, facing). They load in that order; the
+  player comes last because it may change the map. Adding sections needed no format change. A save
+  from before farming (`tests/fixtures/saves/v2_phase2_before_farming.json`, written by the Phase 2
+  code) loads with new-game belongings and an untouched farm.
 - **Two versioning layers:**
   1. *File format*: `SaveMigrations.migrate()` runs steps v1 → v2 → …. v1 (sections at the top level)
      was the first Phase 2 format; v1 → v2 moved sections under `sections` and added `meta`.
@@ -345,3 +398,7 @@ discrete points (day transitions, battle turns).
 | D12 | Maps addressed by id through a data catalog | Exits holding `PackedScene` references | No map-specific code; lazy loading; saves store ids; cyclic scene references avoided |
 | D13 | One persistent Player node moved between maps | Re-instantiate the player per map | Player state (facing, future inventory/party links) survives transitions without copying |
 | D14 | Blockout maps generated from ASCII layouts | Paint blockouts in the editor | Diffable, reviewable in PRs, trivially rebuilt when the tileset changes; editor painting starts with final art |
+| D15 | `ContentDB` autoload for read-only content | Pass catalogs to every system | Content is global and immutable; one lookup API; validation in one place |
+| D16 | Session state (`GameSession`) owned by `Main` and injected | More autoloads (`Farm`, `Player`) | Keeps mutable state out of globals; tests build sessions freely; future multiplayer (one session per player) |
+| D17 | One context-sensitive interact button for farming | Tool hotbar (hoe, can, seeds) | Smallest coherent loop; tools come with farming depth later |
+| D18 | Shipping crate pays immediately | Overnight shipping (Stardew-style) | Makes crop → value → money visible for the MVP; overnight is a later tuning choice |

@@ -19,12 +19,15 @@ const SIGN_SCENE := "res://game/world/props/sign.tscn"
 const CRATE_SCENE := "res://game/world/props/crate.tscn"
 const BED_SCENE := "res://game/world/props/bed.tscn"
 const NPC_SCENE := "res://game/characters/npc/npc.tscn"
+const FARM_PLOT_SCENE := "res://game/farming/farm_plot.tscn"
+const SHIPPING_CRATE_SCENE := "res://game/economy/shipping_crate.tscn"
 const T := 16
 
 ## Atlas x-coordinates. Keep in sync with TILE_NAMES in generate_placeholder_art.gd (append only).
 enum Tile {
 	GRASS, GRASS_ALT, PATH, TILLED, WATER, FLOOR, FLOWERS, WALL, FENCE, TREE, ROCK,
 	COBBLE, TALL_GRASS, MUD, BRIDGE, RAIL, ROOF, LOG,
+	SOIL,
 }
 
 const PHYSICS_WORLD := 0  # TileSet physics layer index → collision layer 1 (world)
@@ -35,7 +38,7 @@ const TERRAIN := {
 	".": [Tile.GRASS, -1], ",": [Tile.GRASS_ALT, -1], ":": [Tile.FLOWERS, -1],
 	"=": [Tile.PATH, -1], "~": [Tile.WATER, -1], "_": [Tile.FLOOR, -1], "t": [Tile.TILLED, -1],
 	"c": [Tile.COBBLE, -1], "g": [Tile.TALL_GRASS, -1], "m": [Tile.MUD, -1],
-	"b": [Tile.BRIDGE, -1], "r": [Tile.RAIL, -1],
+	"b": [Tile.BRIDGE, -1], "r": [Tile.RAIL, -1], "s": [Tile.SOIL, -1],
 	"#": [Tile.FLOOR, Tile.WALL], "f": [Tile.GRASS, Tile.FENCE], "T": [Tile.GRASS, Tile.TREE],
 	"o": [Tile.GRASS, Tile.ROCK], "R": [Tile.GRASS, Tile.ROOF], "L": [Tile.GRASS, Tile.LOG],
 }
@@ -46,6 +49,7 @@ const TERRAIN := {
 ##   {type: "prop", scene, name, ground, lines?}
 ##   {type: "sign", ground}                     next entry of `signs` (row-major order)
 ##   {type: "npc", data, name, ground}          Npc scene with the NpcData resource at `data`
+##   {type: "plot", ground}                     FarmPlot with plot_id "<map_id>:<x>,<y>"
 ##   {type: "ground", ground}                   plain ground (reserved for a later phase)
 const MAPS := {
 	"test_map": {
@@ -81,9 +85,11 @@ const MAPS := {
 				"It's empty. Whoever lived here left in a hurry.",
 			]},
 			"S": {"type": "sign", "ground": "."},
+			"p": {"type": "plot", "ground": "s"},
+			"X": {"type": "prop", "scene": SHIPPING_CRATE_SCENE, "name": "ShippingCrate", "ground": "."},
 		},
 		"signs": [
-			{"name": "FarmSign", "lines": ["WRENFIELD", "(Blockout: the fenced field to the south is where farming will start.)"]},
+			{"name": "FarmSign", "lines": ["WRENFIELD", "The soil in the fenced field is yours to work: till, plant, water, and sleep.", "Sell your harvest at the green crate by the house."]},
 			{"name": "WestSignpost", "lines": ["← Brambleford"]},
 			{"name": "EastSignpost", "lines": ["Whisperwood →"]},
 		],
@@ -282,6 +288,10 @@ func _build_map(map_id: String, config: Dictionary, tileset: TileSet) -> PackedS
 						var npc := _instance(NPC_SCENE, marker["name"], base - Vector2(0, 2))
 						npc.set("data", load(marker["data"]))
 						_add(entities, npc, root)
+					"plot":
+						var plot := _instance(FARM_PLOT_SCENE, "Plot_%d_%d" % [x, y], base)
+						plot.set("plot_id", StringName("%s:%d,%d" % [map_id, x, y]))
+						_add(entities, plot, root)
 					"ground":
 						pass
 			var entry: Array = TERRAIN[terrain_key]

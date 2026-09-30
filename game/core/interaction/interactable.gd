@@ -7,6 +7,8 @@ extends Area2D
 ## to `interacted`.
 
 signal interacted(actor: Node)
+## The verb changed (e.g. a farm plot went from "Plant" to "Water"); the HUD refreshes its prompt.
+signal prompt_changed
 
 const LAYER_INTERACTABLES := 1 << 2
 
@@ -20,6 +22,11 @@ func _init() -> void:
 	collision_mask = 0
 	monitoring = false
 	monitorable = true
+
+
+## Verb to show right now. Override for context-sensitive prompts (and emit prompt_changed).
+func get_prompt() -> String:
+	return prompt
 
 
 func can_interact(_actor: Node) -> bool:

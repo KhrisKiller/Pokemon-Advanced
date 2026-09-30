@@ -1,6 +1,9 @@
 class_name Hud
 extends CanvasLayer
-## In-game HUD: date/time, interaction prompt, message box and full-screen fade.
+## In-game HUD: date/time, money, selected seed, interaction prompt, message box, bag panel,
+## location banner and full-screen fade.
+
+const INVENTORY_MODAL := &"inventory"
 
 @onready var message_box: MessageBox = %MessageBox
 @onready var _date_label: Label = %DateLabel
@@ -8,6 +11,12 @@ extends CanvasLayer
 @onready var _prompt_label: Label = %PromptLabel
 @onready var _fade: ColorRect = %Fade
 @onready var _location_label: Label = %LocationLabel
+@onready var _money_label: Label = %MoneyLabel
+@onready var _seed_label: Label = %SeedLabel
+@onready var _inventory_panel: PanelContainer = %InventoryPanel
+@onready var _inventory_items: Label = %Items
+
+var _player_state: PlayerState
 
 var _prompt_target: Interactable = null
 var _open_modals: Dictionary[StringName, bool] = {}
@@ -29,6 +38,76 @@ func _ready() -> void:
 func bind_player(player: Player) -> void:
 	player.probe.target_changed.connect(_on_target_changed)
 	_on_target_changed(player.probe.current_target)
+
+
+## Shows money, the selected seed and the bag of this PlayerState.
+func bind_player_state(state: PlayerState) -> void:
+	_player_state = state
+	state.money_changed.connect(_on_money_changed)
+	state.selected_seed_changed.connect(_on_selected_seed_changed)
+	state.inventory.changed.connect(_refresh_belongings)
+	_refresh_belongings()
+
+
+func get_money_text() -> String:
+	return _money_label.text
+
+
+func get_seed_text() -> String:
+	return _seed_label.text
+
+
+func is_inventory_open() -> bool:
+	return _inventory_panel.visible
+
+
+func get_inventory_text() -> String:
+	return _inventory_items.text
+
+
+func toggle_inventory() -> void:
+	if _inventory_panel.visible:
+		_inventory_panel.hide()
+		Clock.release_pause(INVENTORY_MODAL)
+		EventBus.modal_closed.emit(INVENTORY_MODAL)
+	elif _open_modals.is_empty():
+		_refresh_belongings()
+		_inventory_panel.show()
+		Clock.request_pause(INVENTORY_MODAL)
+		EventBus.modal_opened.emit(INVENTORY_MODAL)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"toggle_inventory") and _player_state != null:
+		if _inventory_panel.visible or _open_modals.is_empty():
+			toggle_inventory()
+			get_viewport().set_input_as_handled()
+
+
+func _on_money_changed(_money: int) -> void:
+	_refresh_belongings()
+
+
+func _on_selected_seed_changed(_item_id: StringName) -> void:
+	_refresh_belongings()
+
+
+func _refresh_belongings() -> void:
+	if _player_state == null:
+		return
+	_money_label.text = "%d marks" % _player_state.money
+	var seed_id := _player_state.selected_seed
+	if seed_id == &"":
+		_seed_label.text = "Seeds: none"
+	else:
+		var seed := ContentDB.get_item(seed_id)
+		_seed_label.text = "%s ×%d   [%s] switch" % [seed.display_name if seed else String(seed_id),
+				_player_state.inventory.count(seed_id), _describe_action(&"cycle_seed")]
+	var lines := PackedStringArray()
+	for stack in _player_state.inventory.get_stacks():
+		var item := ContentDB.get_item(stack["item_id"])
+		lines.append("%s ×%d" % [item.display_name if item else String(stack["item_id"]), stack["quantity"]])
+	_inventory_items.text = "\n".join(lines) if not lines.is_empty() else "(empty)"
 
 
 func get_prompt_text() -> String:
@@ -82,25 +161,32 @@ func _update_clock(time: GameTime) -> void:
 
 
 func _on_target_changed(target: Interactable) -> void:
+	if _prompt_target != null and is_instance_valid(_prompt_target) and _prompt_target.prompt_changed.is_connected(_refresh_prompt):
+		_prompt_target.prompt_changed.disconnect(_refresh_prompt)
 	_prompt_target = target
+	if target != null:
+		target.prompt_changed.connect(_refresh_prompt)
 	_refresh_prompt()
 
 
 func _refresh_prompt() -> void:
-	var show_prompt := _prompt_target != null and is_instance_valid(_prompt_target) and _open_modals.is_empty()
+	var verb := _prompt_target.get_prompt() if _prompt_target != null and is_instance_valid(_prompt_target) else ""
+	var show_prompt := verb != "" and _open_modals.is_empty()
 	_prompt_label.visible = show_prompt
 	if show_prompt:
-		_prompt_label.text = "[%s] %s" % [_describe_action(&"interact"), _prompt_target.prompt]
+		_prompt_label.text = "[%s] %s" % [_describe_action(&"interact"), verb]
 
 
 func _on_modal_opened(modal_id: StringName) -> void:
 	_open_modals[modal_id] = true
 	_refresh_prompt()
+	_seed_label.visible = false
 
 
 func _on_modal_closed(modal_id: StringName) -> void:
 	_open_modals.erase(modal_id)
 	_refresh_prompt()
+	_seed_label.visible = _open_modals.is_empty()
 
 
 ## Name of the first keyboard key bound to an action (controller glyphs come later).
