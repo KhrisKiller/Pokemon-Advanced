@@ -2,7 +2,8 @@ extends Node2D
 ## TACTICAL SPIKE — playable view/controller for spike_rules.gd. NOT production code.
 ## Run: godot --path . res://spikes/tactical/tactical_spike.tscn
 ## Controls: mouse or arrows to move the cursor · Left click / Space / Enter to select & confirm ·
-## Right click / Esc to cancel (after moving: wait) · Tab to end your turn · R to restart.
+## Right click / Esc to cancel (after moving: wait) · Tab to end your turn · R to restart ·
+## 1–4 to pick a scenario (v0.1 baseline, Hold, Rout, Escort) · V to show Red's danger zone.
 
 const Rules := preload("res://spikes/tactical/spike_rules.gd")
 
@@ -21,7 +22,16 @@ const TERRAIN_COLORS := {
 }
 const TEAM_COLORS := {Rules.Team.BLUE: Color("3b6fd8"), Rules.Team.RED: Color("d0463b")}
 
+const SCENARIO_KEYS := {KEY_1: "v01", KEY_2: "hold", KEY_3: "rout", KEY_4: "escort"}
+const OBJECTIVE_TEXT := {
+	"hold": ["Win: survive %d turns or rout Red.", "Lose: Red ends a turn on the gold tile."],
+	"rout": ["Win: rout every Red unit by turn %d.", "Lose: Blue is routed or time runs out."],
+	"escort": ["Win: the Courier reaches a green exit (turn %d).", "Lose: the Courier falls or time runs out."],
+}
+
 var rules: Rules
+var scenario_id := "hold"
+var show_danger := false
 var state: int = State.SELECT
 var cursor := Vector2i(4, 3)
 var selected: Rules.Unit = null
@@ -36,12 +46,12 @@ func _ready() -> void:
 
 
 func restart() -> void:
-	rules = Rules.new()
+	rules = Rules.new(scenario_id)
 	state = State.SELECT
 	selected = null
 	reachable = {}
 	target_cells.clear()
-	rules.log_lines.append("Hold the crossing for %d turns." % Rules.TURN_LIMIT)
+	rules.log_lines.append("%s. Keys 1–4 switch scenario." % rules.scenario["name"])
 	queue_redraw()
 
 
@@ -78,6 +88,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				end_player_turn()
 			KEY_R:
 				restart()
+			KEY_V:
+				show_danger = not show_danger
+				queue_redraw()
+			KEY_1, KEY_2, KEY_3, KEY_4:
+				if state != State.ENEMY:
+					scenario_id = SCENARIO_KEYS[event.keycode]
+					restart()
 
 
 func _move_cursor(offset: Vector2i) -> void:
@@ -189,7 +206,7 @@ func _run_enemy_phase() -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 640, 360), Color("1f2622"))
-	_text(Vector2(16, 20), "TACTICAL SPIKE — Hold the crossing", 14, Color.WHITE)
+	_text(Vector2(16, 20), "TACTICAL SPIKE v0.2", 14, Color.WHITE)
 	_text(Vector2(16, 38), "Prototype to evaluate grid combat. Not final art or rules.", 9, Color("a9b5ad"))
 	for y in rules.height:
 		for x in rules.width:
@@ -202,8 +219,17 @@ func _draw() -> void:
 					draw_circle(rect.get_center(), 8, Color("2c5a2a"))
 				Rules.Terrain.HILL:
 					draw_colored_polygon(PackedVector2Array([rect.position + Vector2(6, 26), rect.position + Vector2(16, 8), rect.position + Vector2(26, 26)]), Color("8a7048"))
-	var obj := _cell_rect(Rules.OBJECTIVE)
-	draw_rect(obj.grow(-2), Color("f2c14e"), false, 3.0)
+	var objective_color := Color("f2c14e") if rules.objective_type == "hold" else Color("7be07b")
+	for cell in rules.objective_cells:
+		draw_rect(_cell_rect(cell).grow(-2), objective_color, false, 3.0)
+	if show_danger:
+		var danger := rules.threat_map(Rules.Team.RED)
+		for cell: Vector2i in danger:
+			var rect := _cell_rect(cell).grow(-3)
+			draw_line(rect.position, rect.end, Color(1, 0.3, 0.25, 0.8), 2.0)
+			draw_line(Vector2(rect.position.x, rect.end.y), Vector2(rect.end.x, rect.position.y), Color(1, 0.3, 0.25, 0.8), 2.0)
+			if int(danger[cell]) > 1:
+				_text(rect.position + Vector2(1, 9), str(danger[cell]), 8, Color(1, 0.8, 0.75))
 	for cell: Vector2i in reachable:
 		draw_rect(_cell_rect(cell).grow(-1), Color(0.35, 0.6, 1.0, 0.45))
 	for cell in target_cells:
@@ -228,6 +254,8 @@ func _draw_unit(unit: Rules.Unit) -> void:
 		color = color.darkened(0.45)
 	draw_circle(center, 12, color)
 	draw_arc(center, 12, 0, TAU, 24, Color.WHITE if unit == selected else Color(0, 0, 0, 0.6), 2.0)
+	if unit.role == "vip":
+		draw_arc(center, 15, 0, TAU, 24, Color("f2c14e"), 2.0)
 	_text(center + Vector2(-5, 4), unit.name.substr(0, 2), 10, Color.WHITE)
 	draw_rect(Rect2(center + Vector2(4, 5), Vector2(12, 10)), Color(0, 0, 0, 0.75))
 	_text(center + Vector2(6, 14), str(unit.hp), 9, Color.WHITE)
@@ -238,11 +266,13 @@ func _draw_panel() -> void:
 	var phase := "Your turn" if rules.active_team == Rules.Team.BLUE else "Red is moving…"
 	if state == State.OVER:
 		phase = "Battle over"
-	_text(Vector2(PANEL_X, y), "Turn %d / %d — %s" % [rules.turn, Rules.TURN_LIMIT, phase], 11, Color.WHITE)
+	_text(Vector2(PANEL_X, y - 16), rules.scenario["name"], 10, Color("f2c14e"))
+	_text(Vector2(PANEL_X, y), "Turn %d / %d — %s" % [rules.turn, rules.turn_limit, phase], 11, Color.WHITE)
+	var texts: Array = OBJECTIVE_TEXT[rules.objective_type]
 	y += 16
-	_text(Vector2(PANEL_X, y), "Win: survive or rout Red. Lose: Red ends", 9, Color("d8e0da"))
+	_text(Vector2(PANEL_X, y), String(texts[0]) % rules.turn_limit if texts[0].contains("%d") else texts[0], 9, Color("d8e0da"))
 	y += 12
-	_text(Vector2(PANEL_X, y), "a turn on the gold tile, or Blue is routed.", 9, Color("d8e0da"))
+	_text(Vector2(PANEL_X, y), texts[1] + ("  ZOC on" if rules.zone_of_control else ""), 9, Color("d8e0da"))
 	y += 20
 	var t: Dictionary = Rules.TERRAIN_INFO[rules.terrain_at(cursor)]
 	_text(Vector2(PANEL_X, y), "Tile: %s  (defence %+d%%)" % [t["name"], roundi(t["defense"] * 100)], 10, Color("f2e6c8"))
@@ -264,7 +294,7 @@ func _draw_panel() -> void:
 	for i in range(start, rules.log_lines.size()):
 		y += 12
 		_text(Vector2(PANEL_X, y), rules.log_lines[i], 9, Color("d8e0da"))
-	_text(Vector2(16, 336), "Click/Space: select, move, attack · Right click/Esc: cancel or wait · Tab: end turn · R: restart", 9, Color("a9b5ad"))
+	_text(Vector2(16, 336), "Click/Space: select, move, attack · Esc: cancel/wait · Tab: end turn · V: danger · 1–4: scenario · R: restart", 9, Color("a9b5ad"))
 
 
 func _cell_rect(cell: Vector2i) -> Rect2:
