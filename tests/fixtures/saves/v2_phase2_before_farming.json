@@ -1,0 +1,38 @@
+{
+	"format_version": 2,
+	"meta": {
+		"game_version": "0.2.0",
+		"saved_at": "2026-09-30T20:51:33Z",
+		"summary": {
+			"date": "Tideday, Spring 2 · Year 1",
+			"location": "Wrenfield",
+			"time": "9:20 AM"
+		}
+	},
+	"sections": {
+		"clock": {
+			"day_index": 1,
+			"minute_of_day": 560,
+			"version": 1
+		},
+		"player": {
+			"facing": "right",
+			"map_id": "farm",
+			"position": [
+				400.0,
+				260.0
+			],
+			"version": 2
+		},
+		"world": {
+			"discovered": [
+				"farm",
+				"village"
+			],
+			"flags": {
+				"met_tamsin": true
+			},
+			"version": 1
+		}
+	}
+}

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemCatalog" format=3]
+
+[ext_resource type="Script" path="res://game/items/item_catalog.gd" id="1_cat"]
+[ext_resource type="Script" path="res://game/items/item_data.gd" id="0_item"]
+[ext_resource type="Resource" path="res://data/items/pipweed_seed.tres" id="2_pipweed_seed"]
+[ext_resource type="Resource" path="res://data/items/emberroot_seed.tres" id="3_emberroot_seed"]
+[ext_resource type="Resource" path="res://data/items/bluecap_seed.tres" id="4_bluecap_seed"]
+[ext_resource type="Resource" path="res://data/items/pipweed.tres" id="5_pipweed"]
+[ext_resource type="Resource" path="res://data/items/emberroot.tres" id="6_emberroot"]
+[ext_resource type="Resource" path="res://data/items/bluecap.tres" id="7_bluecap"]
+
+[resource]
+script = ExtResource("1_cat")
+items = Array[ExtResource("0_item")]([ExtResource("2_pipweed_seed"), ExtResource("3_emberroot_seed"), ExtResource("4_bluecap_seed"), ExtResource("5_pipweed"), ExtResource("6_emberroot"), ExtResource("7_bluecap")])

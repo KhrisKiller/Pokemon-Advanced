@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CropCatalog" format=3]
+
+[ext_resource type="Script" path="res://game/farming/crop_catalog.gd" id="1_cat"]
+[ext_resource type="Script" path="res://game/farming/crop_data.gd" id="0_crop"]
+[ext_resource type="Resource" path="res://data/crops/pipweed.tres" id="2_pipweed"]
+[ext_resource type="Resource" path="res://data/crops/emberroot.tres" id="3_emberroot"]
+[ext_resource type="Resource" path="res://data/crops/bluecap.tres" id="4_bluecap"]
+
+[resource]
+script = ExtResource("1_cat")
+crops = Array[ExtResource("0_crop")]([ExtResource("2_pipweed"), ExtResource("3_emberroot"), ExtResource("4_bluecap")])

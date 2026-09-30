@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://game/items/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"bluecap"
+display_name = "Bluecap"
+description = "A cluster of mild blue caps. Picked again and again."
+tags = Array[StringName]([&"crop", &"food"])
+base_value = 25
+stack_max = 99

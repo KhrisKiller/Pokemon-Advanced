@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://game/items/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"pipweed_seed"
+display_name = "Pipweed Seeds"
+description = "Plant on tilled soil. Ready in 3 watered days."
+tags = Array[StringName]([&"seed"])
+base_value = 10
+stack_max = 99

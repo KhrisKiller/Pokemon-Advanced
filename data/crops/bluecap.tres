@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CropData" format=3]
+
+[ext_resource type="Script" path="res://game/farming/crop_data.gd" id="1_crop"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/crop_bluecap.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_crop")
+id = &"bluecap"
+display_name = "Bluecap"
+seed_item_id = &"bluecap_seed"
+harvest_item_id = &"bluecap"
+harvest_quantity = 2
+growth_days = 4
+regrow_days = 2
+stage_count = 4
+sprite_sheet = ExtResource("2_tex")

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CropData" format=3]
+
+[ext_resource type="Script" path="res://game/farming/crop_data.gd" id="1_crop"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/crop_pipweed.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_crop")
+id = &"pipweed"
+display_name = "Pipweed"
+seed_item_id = &"pipweed_seed"
+harvest_item_id = &"pipweed"
+harvest_quantity = 1
+growth_days = 3
+regrow_days = 0
+stage_count = 4
+sprite_sheet = ExtResource("2_tex")

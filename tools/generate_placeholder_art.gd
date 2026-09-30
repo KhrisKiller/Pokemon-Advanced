@@ -15,6 +15,7 @@ const TILE_NAMES := [
 	"grass", "grass_alt", "path", "tilled", "water", "floor", "flowers",
 	"wall", "fence", "tree", "rock",
 	"cobble", "tall_grass", "mud", "bridge", "rail", "roof", "log",
+	"soil",
 ]
 
 const C := {
@@ -37,6 +38,10 @@ const C := {
 	"mud": Color("6b5234"), "mud_light": Color("836845"),
 	"rail": Color("6d6d72"), "sleeper": Color("6a4a2c"), "gravel": Color("9c9489"),
 	"roof": Color("9a4b3c"), "roof_dark": Color("7a372b"), "roof_light": Color("b5624f"),
+	"soil_light": Color("9c7a52"), "soil_speck": Color("86663f"), "wet": Color("4a3120"), "wet_dark": Color("3a2618"),
+	"leaf_crop": Color("5fb04a"), "leaf_crop_dark": Color("3f8a34"),
+	"pip_root": Color("efe6c8"), "ember_root": Color("e0612f"), "bluecap": Color("4f7fe0"), "bluecap_light": Color("8fb3ff"),
+	"stem": Color("e8e0cf"),
 }
 
 
@@ -47,6 +52,11 @@ func _init() -> void:
 	_save(_make_sign(), "sign.png")
 	_save(_make_bed(), "bed.png")
 	_save(_make_crate(), "crate.png")
+	_save(_make_shipping_crate(), "shipping_crate.png")
+	_save(_make_soil_overlay(), "soil_overlay.png")
+	_save(_make_root_crop(C.pip_root), "crop_pipweed.png")
+	_save(_make_root_crop(C.ember_root), "crop_emberroot.png")
+	_save(_make_mushroom_crop(), "crop_bluecap.png")
 	_save(_make_person({"shirt": Color("7a5a9e"), "shirt_dark": Color("5c4379"), "hair": Color("b9b3a8")}), "npc_tamsin.png")
 	_save(_make_person({"shirt": Color("5f8f3e"), "shirt_dark": Color("466c2d"), "hair": Color("2f2a24"), "skin": Color("c79a73")}), "npc_odile.png")
 	print("Placeholder art written to %s" % OUT_DIR)
@@ -172,6 +182,10 @@ func _make_tiles() -> Image:
 				for row in [3, 7, 11, 15]:
 					_rect(img, ox, row, T, 1, C.roof_dark)
 				_rect(img, ox, 0, T, 1, C.roof_light)
+			"soil":
+				_rect(img, ox, 0, T, T, C.soil_light)
+				_dots(img, ox, [Vector2i(2, 2), Vector2i(9, 4), Vector2i(5, 9), Vector2i(12, 12), Vector2i(3, 13), Vector2i(13, 6)], C.soil_speck)
+				_rect(img, ox, 15, T, 1, C.soil_speck)
 			"log":
 				_rect(img, ox, 5, T, 8, C.wood)
 				_rect(img, ox, 5, T, 1, C.wood_light)
@@ -246,4 +260,66 @@ func _make_crate() -> Image:
 	_rect(img, 14, 2, 1, 13, C.wood_dark)
 	for i in 11:
 		img.set_pixel(3 + i, 4 + i, C.wood_dark)
+	return img
+
+
+## Crate with a green lid: the placeholder produce buyer.
+func _make_shipping_crate() -> Image:
+	var img := _make_crate()
+	_rect(img, 1, 2, 14, 3, C.leaf_crop_dark)
+	_rect(img, 1, 2, 14, 1, C.leaf_crop)
+	return img
+
+
+## 2 frames of 16×16 drawn over a plot: tilled (dry), tilled (watered).
+func _make_soil_overlay() -> Image:
+	var img := _new_image(32, 16)
+	for f in 2:
+		var ox := f * 16
+		var base: Color = C.soil if f == 0 else C.wet
+		var line: Color = C.soil_dark if f == 0 else C.wet_dark
+		_rect(img, ox + 1, 1, 14, 14, base)
+		for row in [4, 8, 12]:
+			_rect(img, ox + 2, row, 12, 1, line)
+	return img
+
+
+## 4 growth frames of 16×16 for a root crop (seedling → mature with a visible root).
+func _make_root_crop(root: Color) -> Image:
+	var img := _new_image(64, 16)
+	# 0: seed mound
+	_rect(img, 6, 10, 4, 2, C.leaf_crop_dark)
+	_rect(img, 7, 9, 2, 1, C.leaf_crop)
+	# 1: sprout
+	_rect(img, 16 + 7, 7, 2, 5, C.leaf_crop)
+	_rect(img, 16 + 5, 7, 2, 2, C.leaf_crop)
+	_rect(img, 16 + 9, 6, 2, 2, C.leaf_crop)
+	# 2: leafy
+	_rect(img, 32 + 7, 4, 2, 8, C.leaf_crop_dark)
+	_rect(img, 32 + 3, 4, 4, 3, C.leaf_crop)
+	_rect(img, 32 + 9, 3, 4, 3, C.leaf_crop)
+	_rect(img, 32 + 6, 11, 4, 2, root.darkened(0.2))
+	# 3: mature, root showing
+	_rect(img, 48 + 7, 2, 2, 7, C.leaf_crop_dark)
+	_rect(img, 48 + 2, 2, 5, 4, C.leaf_crop)
+	_rect(img, 48 + 9, 1, 5, 4, C.leaf_crop)
+	_rect(img, 48 + 4, 8, 8, 6, root)
+	_rect(img, 48 + 5, 8, 6, 1, root.lightened(0.3))
+	return img
+
+
+## 4 growth frames for the Bluecap (a cluster of blue caps).
+func _make_mushroom_crop() -> Image:
+	var img := _new_image(64, 16)
+	_rect(img, 7, 10, 2, 2, C.bluecap.darkened(0.3))
+	_rect(img, 16 + 7, 8, 2, 4, C.stem)
+	_rect(img, 16 + 5, 6, 6, 2, C.bluecap)
+	_rect(img, 32 + 5, 7, 2, 5, C.stem)
+	_rect(img, 32 + 10, 8, 2, 4, C.stem)
+	_rect(img, 32 + 3, 5, 6, 3, C.bluecap)
+	_rect(img, 32 + 9, 6, 5, 2, C.bluecap)
+	for cap: Vector2i in [Vector2i(2, 4), Vector2i(8, 2), Vector2i(6, 8)]:
+		_rect(img, 48 + cap.x + 2, cap.y + 3, 2, 5, C.stem)
+		_rect(img, 48 + cap.x, cap.y, 6, 3, C.bluecap)
+		_rect(img, 48 + cap.x + 1, cap.y, 3, 1, C.bluecap_light)
 	return img
