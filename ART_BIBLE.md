@@ -77,6 +77,13 @@ Night light sources (windows, lanterns, glowing kith) are separate emissive laye
 | Kith battle | idle loop 4–6, attack 3–5, hit 2 |
 | Crops | one sprite per growth stage + watered soil variant |
 
+### Farming readability (lesson from Phase 3)
+
+- A mature crop must be recognisable at a glance and from the tile above. Use a distinct silhouette
+  plus a "ready" cue (produce visible above the soil, a colour pop, a subtle idle sway). The Phase 3
+  placeholders fail this: mature and growing crops look too similar.
+- Watered vs dry soil must differ in value (dark vs light), not only in hue.
+
 ## 8. Placeholder policy
 
 - Placeholders live in `assets/placeholder/` and are **generated** by

@@ -22,18 +22,23 @@ project.godot            Godot project (root = res://)
 CLAUDE.md, *.md          Design and technical docs (root, as required)
 docs/history/            Superseded material (Design.pdf)
 game/                    ALL code and scenes, grouped by feature (script + scene side by side)
-  core/                  Engine-agnostic services: event bus, time, interaction, save, world state
-  main/                  Entry scene; composes world + HUD; map and day transitions; player save section
+  core/                  Engine-agnostic services: event bus, time, interaction, save, world state, ContentDB
+  main/                  Entry scene; composes world + HUD; map and day transitions; player save section;
+                         GameSession; NewGameConfig
+  items/                 ItemData, ItemCatalog, Inventory
+  farming/               CropData/CropCatalog, CropState, PlotState, FarmState, FarmActions, FarmPlot
+  economy/               Pricing, Shipping, ShippingCrate
   characters/player/     Player controller
   characters/npc/        NpcData + Npc (placeholder NPCs)
   world/                 WorldMap, MapInfo/MapCatalog, MapTransition, maps, props, tilesets, day/night tint
   ui/hud/                HUD, clock display, message box, prompt, location banner, screen fade
-  (creatures/ combat/ tactical/ farming/ inventory/ economy/ dialogue/ quests/
-   progression/ audio/ are created by the phase that implements them)
+  (creatures/ combat/ tactical/ dialogue/ quests/ progression/ audio/ are created by the phase that
+   implements them)
 data/                    Content as Godot Resources (.tres). No code.
   config/                Tunable configs (time_config.tres, day_night_gradient.tres)
   maps/                  MapInfo per map + map_catalog.tres
   npcs/                  NpcData per NPC
+  items/, crops/         ItemData / CropData + catalogs
 assets/                  Art and audio source files, grouped by kind
   placeholder/           Generated placeholder art (see tools/). Replaced during Phase 10.
 tests/                   Headless test runner, unit/ and integration/ tests, fixtures/saves/,
@@ -351,7 +356,8 @@ tactical system uses the same movement class vocabulary for terrain costs.
   `assert_true`, `assert_false`, `assert_almost_eq`, `assert_not_null`, plus helpers to add nodes and await
   physics frames. Every `test_*` method in `tests/unit/test_*.gd` and `tests/integration/test_*.gd` is run.
 - Unit tests cover pure logic (time, save format and migrations, world state). Integration tests
-  instantiate real scenes headlessly: movement against collision, interaction, sleep flow, save/load
+  instantiate real scenes headlessly: the full farming loop through the real interact button and sleep
+  flow, movement against collision, interaction, sleep flow, save/load
   through `Main`, migration from a real v1 file, map validation (exit graph and on-foot
   reachability), map transitions (including real walking through an exit), and NPCs.
 - **Restart test:** `tests/persistence/run_restart_test.sh` saves in one Godot process (in the village,
@@ -363,7 +369,7 @@ tactical system uses the same movement class vocabulary for terrain costs.
 - Visual check: `tools/capture_screenshots.tscn` plays a scripted tour of the real game (farm, sign,
   village, Tamsin, forest, Odile, night) and saves screenshots. It needs a display (`xvfb-run` on
   servers) and uses its own save directory.
-- Current suite: 111 tests (46 unit, 65 integration) + the restart test + 18 spike tests.
+- Current suite: 158 tests (83 unit, 75 integration) + the restart test + 30 spike tests.
 
 ## 12. Multiplayer readiness (not implemented)
 

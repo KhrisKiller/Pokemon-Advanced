@@ -59,6 +59,13 @@ commit `.godot/`.
 | `data/npcs/` | One `NpcData` per NPC |
 | `game/world/` | `WorldMap`, `MapInfo`/`MapCatalog`, `MapTransition`, `DayNightTint`, maps, props, tileset |
 | `game/core/save/` | `SaveService` (autoload), `SaveFormat`, `SaveMigrations` |
+| `game/core/content_db.gd` | `ContentDB` autoload: read-only items/crops by id; `validate()` |
+| `game/main/game_session.gd` | `GameSession` (owned by Main): `PlayerState` + `FarmState`, injected into `session_aware` nodes |
+| `game/items/` | `ItemData`, `ItemCatalog`, `Inventory` (the one inventory model) |
+| `game/characters/player/player_state.gd` | `PlayerState`: bag, money, selected seed (save section `player_state`) |
+| `game/farming/` | `CropData`/`CropCatalog`, `CropState`, `PlotState`, `FarmState` (save section `farm`), `FarmActions`, `FarmPlot` node |
+| `game/economy/` | `Pricing`, `Shipping`, `ShippingCrate` node |
+| `data/items/`, `data/crops/` | Item and crop definitions + catalogs |
 | `game/core/world_state.gd` | `WorldState` autoload: flags, discovered locations |
 | `data/maps/` | `MapInfo` per map + `map_catalog.tres` |
 | `tools/maps/` | ASCII blockout layouts (source of truth for blockout maps) |
@@ -85,13 +92,24 @@ commit `.godot/`.
 - `spikes/` holds isolated prototypes. No `class_name`, no autoloads, and never reference them from
   `game/`. A spike is rewritten for production, never promoted.
 
+## Farming rules of thumb
+
+- Farming never has its own clock: growth happens only in `FarmState.advance_day()`, called by the
+  day transition in `Main`.
+- New crop = `CropData` + seed item (tag `seed`) + produce item (tag `crop`) + catalog entries; the
+  `ContentDB.validate()` test must stay green. Don't add farming code for a new crop.
+- Nodes (`FarmPlot`, `ShippingCrate`) only present and forward; rules stay in `FarmState`,
+  `FarmActions`, `Shipping` and `PlayerState`, which are testable without a scene tree.
+
 ## Current phase
 
-Phase 2 (player & world) is done: save/load v1 with migrations, map transitions, farm/village/forest
-blockouts, 2 placeholder NPCs, an isolated tactical spike awaiting the owner's evaluation.
-**Next: Phase 3 (basic farming), only after the owner approves.** Do not start creatures, farming,
-full combat, war systems or mass content without explicit approval.
+Phase 3 (basic farming MVP) is done: items, the one inventory, money, 3 data-driven crops, plots,
+watering, growth in the daily tick, harvest, selling at the shipping crate, full persistence
+(restart-tested). Tactical spike v0.2 is isolated and awaiting the owner's playtest.
+**Next: Phase 4 (basic creature system), only after the owner approves.** Do not start creatures,
+creature battles, full tactical warfare, war systems, mass content or final art without explicit
+approval.
 
 Provisional (keep, don't expand the lore): kith, bonding, Bond Charm, Sera, Lowmere Vale, Aurelian
 Crown, Thornwood Compact, the Greying, the 6:00–2:00 day, ~14 real minutes per day, balance formulas,
-aspect chart.
+aspect chart, crop names/values/growth times, immediate (not overnight) shipping.

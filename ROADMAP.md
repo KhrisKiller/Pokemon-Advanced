@@ -10,8 +10,8 @@
 | 0 | Pre-production & architecture | All foundation docs exist and agree | ✅ |
 | 1 | Basic Godot project | Project boots; player walks a test map with camera, interaction and a day clock; tests run in CI | ✅ |
 | 2 | Player & world | Save/load across restarts with a tested migration; transitions between farm, village and forest blockouts; 2 placeholder NPCs; tactical spike isolated | ✅ |
-| 3 | Basic farming | Till → plant → water → sleep → grow → harvest → sell loop, with saves | ⏳ next (needs owner approval) |
-| 4 | Basic creature system | Kith data, instances, retinue, feeding/trust, one utility action | ⏳ |
+| 3 | Basic farming | Till → plant → water → sleep → grow → harvest → sell loop, with saves (restart-tested); tactical spike v0.2 isolated | ✅ |
+| 4 | Basic creature system | Kith data, instances, retinue, feeding/trust, one utility action | ⏳ next (needs owner approval) |
 | 5 | Creature battle | Wild 1v1 battle + bonding from an overworld encounter | ⏳ |
 | 6 | Exploration | Utility gates, Loamox haul + mount, Sunken Kiln dungeon | ⏳ |
 | 7 | Basic tactical combat | One tactical battle playable end to end, win or lose | ⏳ |
@@ -66,8 +66,9 @@ evaluation and decides how Phase 7 is scoped.
 
 ### Milestone: Content pipeline (Phase 2–4)
 - Feature: Content DB
-  - [ ] `ContentDB` autoload, scan `data/<kind>/`, index by id, `.remap` handling
-  - [ ] Validation tool: duplicate ids, missing references (runs in tests)
+  - [x] `ContentDB` autoload: items and crops by id from catalog resources (no folder scanning, so no `.remap` issues) (Phase 3)
+  - [x] `ContentDB.validate()`: duplicate ids, missing seed/produce references, missing art (runs in tests) (Phase 3)
+  - [ ] Maps and NPCs through `ContentDB` too (maps currently use `MapCatalog` on `Main`)
 - Feature: Condition/Effect vocabulary
   - [ ] Base `Condition`/`Effect` resources + 5 common ones
 
@@ -83,7 +84,8 @@ evaluation and decides how Phase 7 is scoped.
 - [x] Tests: round trip, missing sections, corrupt file → backup, unsupported version, real v1 fixture migration, game boot from v1, **two-process restart test**
 
 ### Milestone: Save coverage (Phases 3–8)
-- [ ] Providers: inventory, money, farm plots, kith instances, NPC relationships, quests, war state, decisions
+- [x] Providers: inventory + money + selected seed (`player_state`), farm plots (`farm`) (Phase 3)
+- [ ] Providers: kith instances, NPC relationships, quests, war state, decisions
 
 ## EPIC: WORLD
 
@@ -102,15 +104,19 @@ evaluation and decides how Phase 7 is scoped.
 
 ## EPIC: FARMING
 
-### Milestone: Farming MVP (Phase 3)
-- [ ] Farm map with 6–10 plots (tillable tile custom data)
-- [ ] `FarmState` + plot model (tilled, watered, crop, stage, days)
-- [ ] Tools: hoe, watering can, seeds (hotbar placeholder)
-- [ ] `CropData` resources: Pipweed, Emberroot, Bluecap
-- [ ] Growth at day transition; watering resets daily; seasonal death
-- [ ] Harvest → inventory
-- [ ] Sell via shipping bin (paid overnight)
-- [ ] Tests: growth timing, watering, regrow, season change
+### Milestone: Farming MVP (Phase 3) ✅
+- [x] Farm map with 20 plots (map-builder marker `p`, stable ids `farm:x,y`)
+- [x] `FarmState` + `PlotState`/`CropState` (tilled, watered, crop, days grown, harvests)
+- [x] One context-sensitive interact (till → plant selected seed → water → inspect → harvest); **Q** cycles seeds
+- [x] `CropData` resources: Pipweed (3 days), Emberroot (5), Bluecap (4, regrows every 2)
+- [x] Growth in the existing day transition; watering resets daily; unwatered crops don't grow
+- [x] Harvest → the shared `Inventory`; bag full → crop kept
+- [x] Sell via the shipping crate (immediate) → money
+- [x] Save/load of plots, bag, money, selected seed; two-process restart test
+- [x] Tests: growth day by day, watering, maturity, harvest, regrow, bag, selling, persistence, growth while away
+- [ ] Tools (hoe, watering can) + hotbar — with farming depth
+- [ ] Seasons: planting seasons and withering at season change
+- [ ] Buying seeds (seeds currently only come from the new-game kit)
 ### Milestone: Farming × systems (Phase 8)
 - [ ] Creature food integration (crops tagged as kith food)
 - [ ] Cooking station: crop → ration (tactical provisions)
@@ -154,6 +160,12 @@ evaluation and decides how Phase 7 is scoped.
 - [x] Rule tests (separate CI step) and bot simulation (skill-driven: random 0 %, greedy 100 %)
 - [ ] Owner playtest using the protocol in `spikes/tactical/README.md`, then a verdict
 
+### Milestone: Tactical spike v0.2 (Phase 3, isolated) ✅ — awaiting owner evaluation
+- [x] 3v3 on 10×8, 5 roles, Hold / Rout / Escort (reach + protect) scenarios, zone of control, danger-zone view
+- [x] Probe: objectives and position decide outcomes (Escort: objective-blind 0 % vs 51 %; Hold: anchoring 78 % vs 10 %); ZOC matters; rout-with-timer and single-tile holds are weak
+- [x] 30 rule tests (v0.1 tests unchanged)
+- [ ] Owner playtest (README protocol, questions 1–10) → verdict
+
 ### Milestone: Tactical prototype (Phase 7)
 - [ ] `TacticalMapData`, `TerrainData` (defence, move costs per class)
 - [ ] Grid rendering, cursor, camera
@@ -195,10 +207,11 @@ evaluation and decides how Phase 7 is scoped.
 
 ## EPIC: ECONOMY
 
-### Milestone: Economy MVP (Phase 3)
-- [ ] Inventory (slots, stacks, tags) + tests
-- [ ] Money + HUD
-- [ ] `PriceService` with modifier stack (season modifier first) + tests
+### Milestone: Economy MVP (Phase 3 → later)
+- [x] Inventory (slots, stacks, tags) + tests (Phase 3)
+- [x] Money + HUD (Phase 3)
+- [x] `Pricing.sell_price` (base value) + `Shipping.sell_all` + placeholder shipping crate (Phase 3)
+- [ ] Price modifier stack (season modifier first) + tests
 - [ ] General store (Pell): buy seeds/charms, sell goods
 ### Milestone: Reactive economy (Phase 8)
 - [ ] War tension modifiers by item tag
@@ -228,8 +241,9 @@ evaluation and decides how Phase 7 is scoped.
 - [x] Message box (modal, pauses time)
 - [x] Screen fade
 - [x] Location banner on map change; speaker name tag in the message box (Phase 2)
-- [ ] Title screen (continue / new game) and pause menu (resume, save, settings, quit) — not in the Phase 2 priority list; Phase 3
-- [ ] Inventory/hotbar (Phase 3), kith party screen (Phase 4), battle UI (Phase 5), tactical UI (Phase 7)
+- [x] Money display, selected-seed display, bag panel on **I** (pauses time) (Phase 3)
+- [ ] Title screen (continue / new game) and pause menu (resume, save, settings, quit) — not in the Phase 3 scope; still open
+- [ ] Hotbar (with tools), kith party screen (Phase 4), battle UI (Phase 5), tactical UI (Phase 7)
 - [ ] Pixel font + UI theme resource (Phase 10 at latest)
 - [ ] Controller glyphs
 

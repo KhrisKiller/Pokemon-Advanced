@@ -14,11 +14,11 @@
 | Map transitions | Exits, spawn by id, fade, state preserved | ✅ | `game/world/map_transition.gd`, `game/main/` | `data/maps/map_catalog.tres` |
 | Interaction | Interactables and probe, prompts | ✅ | `game/core/interaction/` | per-prop exports |
 | Messages | Modal text queue with speaker name tag | 🟡 placeholder for Dialogue | `game/ui/hud/` | — |
-| Day transition | Sleep and curfew → next morning (home from any map) → auto-save | ✅ (no growth/world-tick hooks yet) | `game/main/main.gd` | — |
+| Day transition | Sleep and curfew → next morning (home from any map) → crop growth → auto-save | ✅ (no world-tick hook yet) | `game/main/main.gd` | — |
 | Save / load | Persist everything | ✅ v1 (time, world, player); migrations; restart-tested | `game/core/save/` | `tests/fixtures/saves/` |
-| Content DB | Look up content by id | 📐 | — | `data/*` |
-| Inventory | Items, stacks, tags | 📐 | — | `data/items/` |
-| Farming | Plots, crops, growth, harvest | 📐 | — | `data/crops/` |
+| Content DB | Look up content by id | ✅ items + crops (maps/NPCs still separate) | `game/core/content_db.gd` | `data/items/`, `data/crops/` |
+| Inventory | Items, stacks, tags, money | ✅ | `game/items/`, `game/characters/player/player_state.gd` | `data/items/`, `data/config/new_game.tres` |
+| Farming | Plots, crops, growth, harvest | ✅ MVP (no tools/seasons yet) | `game/farming/` | `data/crops/` |
 | Kith (creatures) | Species data, instances, trust, diet, maturation | 📐 | — | `data/creatures/` |
 | Creature battle | 1v1 turn-based battles, bonding | 📐 | — | `data/moves/` |
 | Tactical battle | Grid warfare with kith units | 📐 production · 🧪 isolated spike in `spikes/tactical/` awaiting evaluation | — | `data/maps/tactical/` |
@@ -26,7 +26,7 @@
 | NPCs & schedules | Identity, talk (now); routines, relationships, gifts (later) | 🟡 2 placeholder NPCs, no schedules | `game/characters/npc/` | `data/npcs/` |
 | Dialogue | Data-driven conversations with conditions | 📐 | — | `data/dialogue/` |
 | Quests | Stages, conditions, rewards | 📐 | — | `data/quests/` |
-| Economy | Prices, shops, modifier stack | 📐 | — | `data/items/`, shops |
+| Economy | Prices, shops, modifier stack | 🟡 base-value selling via shipping crate | `game/economy/` | `data/items/` |
 | Callings | Domain progression without classes | 📐 | — | — |
 | World state & war | Flags, tension, factions, daily world tick | 🟡 flags + discovered locations (saved); war not started | `game/core/world_state.gd` | `data/factions/` |
 | Audio | Music by time/place, SFX | ⏳ | — | — |
@@ -73,10 +73,16 @@ Front-facing probe; closest enabled interactable wins; HUD prompt shows the inte
 verb. Extensible by subclassing `Interactable` (sign and bed exist). *Next:* NPC talk, pickups,
 farm plots, doors/map transitions.
 
-### Farming 📐
-Plots on tillable tiles; tool actions (till, plant, water, harvest). Crops are data: seasons, stages,
-days per stage, regrow, yields, tags (food/medicine/ration). Kith utility waters or tills in patterns.
-Growth only at the day transition. Seasonal death at season change.
+### Farming ✅ (MVP)
+20 plots on the farm. One interact button does the next step: till → plant the selected seed (Q
+cycles) → water → inspect → harvest. Crops are data (growth days, regrow, produce, stage art). Growth
+happens only in the day transition, and only if the crop was watered that day. Harvests go into the
+shared bag; the shipping crate sells crops for money. Everything is saved.
+*Not yet:* tools, seasons/withering, weather, buying seeds, kith helpers.
+*Feel (Phase 3):* the loop is coherent but manual. Every plot is walk-up-and-press, once per plot per
+day, which is fine at ~5 plots and tedious at 20. Seeds run out (no seed shop), so the loop ends
+unless you grow Bluecap, which regrows. Mature crops are hard to tell apart from growing ones in the
+placeholder art.
 
 ### Kith 📐
 See `CREATURE_BIBLE.md`. Retinue of 4, paddock for the rest. Trust and diet from food tags.
@@ -94,9 +100,10 @@ commander doctrines (post-slice). Result → `WorldState` + wounded kith + reput
 Weekly schedules with condition overrides (season, weather, festival, war phase). Relationship
 0–10 hearts, gift tastes by tag. Dialogue and quests share the `Condition`/`Effect` vocabulary.
 
-### Economy 📐
-Base value × modifier stack. Shops sell/buy from data lists; a shipping bin sells overnight
-(day transition). War tension modifies specific item tags (e.g. rations +50 %).
+### Economy 🟡
+Now: `Pricing.sell_price` = base value; the shipping crate sells every carried crop immediately.
+Planned: base value × modifier stack; shops sell and buy from data lists; overnight shipping is still
+an open choice (D18); war tension modifies specific item tags (e.g. rations +50 %).
 
 ### Callings 📐
 XP per domain from EventBus events (crop harvested, kith bonded, battle won, area discovered, item

@@ -216,7 +216,8 @@ unrestricted.
 **Provisional until validated by gameplay (don't expand the lore around them yet):** the terms kith,
 bonding and Bond Charm; the names Sera, Lowmere Vale, Aurelian Crown, Thornwood Compact and the
 Greying; the 6:00–2:00 day cycle and ~14 real minutes per day; the current balance formulas; the
-current aspect chart.
+current aspect chart; the Phase 3 crops (Pipweed, Emberroot, Bluecap), their values and growth
+times, and selling at the shipping crate immediately (not overnight).
 
 ## 17. Heritage from Design.pdf
 

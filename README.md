@@ -13,9 +13,11 @@ how much you fight, is up to you.
 
 ## Status
 
-**Phase 2: player & world, complete.** Walk between the farm, the village and the forest
-(placeholder blockouts), talk to two placeholder NPCs, sleep to auto-save, and continue after a
-restart. An isolated tactical combat prototype lives in `spikes/tactical/`. See [ROADMAP.md](ROADMAP.md).
+**Phase 3: basic farming MVP, complete.** Till, plant, water and harvest three crops on the farm;
+crops grow overnight when watered; sell your harvest for money at the shipping crate. Walk between
+the farm, the village and the forest, talk to two placeholder NPCs, sleep to auto-save, and continue
+after a restart. The isolated tactical prototype (`spikes/tactical/`, v0.2) is waiting for a
+playtest. See [ROADMAP.md](ROADMAP.md).
 
 ## Run it
 
@@ -26,7 +28,8 @@ godot --path .                                            # play
 godot --headless --path . res://tests/test_runner.tscn    # tests
 ```
 
-Controls: **WASD/arrows/left stick** move · **E/Space/gamepad A** interact and advance text ·
+Controls: **WASD/arrows/left stick** move · **E/Space/gamepad A** interact and advance text
+(on a plot: till → plant → water → harvest) · **Q/LB** switch seed · **I/Y** bag ·
 debug builds: **T** skip one hour, **F5** quicksave, **F9** quickload. The game continues from your
 save automatically; delete `user://saves/` to start over.
 
