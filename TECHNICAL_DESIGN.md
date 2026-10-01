@@ -416,7 +416,7 @@ tactical system uses the same movement class vocabulary for terrain costs.
   village, Tamsin, Pell's shop, forest, Odile, bonding, party menu, watering helper, night) and
   saves screenshots. It needs a display (`xvfb-run` on
   servers) and uses its own save directory.
-- Current suite: 212 tests (128 unit, 84 integration) + the restart test + 30 spike tests.
+- Current suite: 213 tests (128 unit, 85 integration) + the restart test + 30 spike tests.
 
 ## 12. Multiplayer readiness (not implemented)
 
