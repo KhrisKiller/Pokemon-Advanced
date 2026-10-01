@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="KithData" format=3]
+
+[ext_resource type="Script" path="res://game/kith/kith_data.gd" id="1_kith"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/kith_sprigmole.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_kith")
+id = &"sprigmole"
+display_name = "Sprigmole"
+description = "A blind mole carrying a sapling that senses roots for it. Loves root vegetables."
+aspects = Array[StringName]([&"verdant", &"stone"])
+favourite_food_tags = Array[StringName]([&"root"])
+liked_food_tags = Array[StringName]([])
+helper_abilities = Array[StringName]([])
+bond_calm_needed = 2
+sprite = ExtResource("2_tex")
+ui_color = Color(0.478, 0.353, 0.267, 1)

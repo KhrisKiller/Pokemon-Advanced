@@ -43,6 +43,10 @@ func get_lines() -> PackedStringArray:
 func _on_interact(actor: Node) -> void:
 	if actor is Node2D:
 		face_towards((actor as Node2D).global_position)
+	if data.shop_id != &"":
+		WorldState.set_flag(data.get_met_flag())
+		EventBus.shop_requested.emit(data.shop_id, data.display_name)
+		return
 	var lines := get_lines()
 	WorldState.set_flag(data.get_met_flag())
 	EventBus.conversation_requested.emit(data.display_name, lines)

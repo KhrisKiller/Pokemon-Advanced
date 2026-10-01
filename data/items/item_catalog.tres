@@ -8,7 +8,8 @@
 [ext_resource type="Resource" path="res://data/items/pipweed.tres" id="5_pipweed"]
 [ext_resource type="Resource" path="res://data/items/emberroot.tres" id="6_emberroot"]
 [ext_resource type="Resource" path="res://data/items/bluecap.tres" id="7_bluecap"]
+[ext_resource type="Resource" path="res://data/items/bond_charm.tres" id="8_bond_charm"]
 
 [resource]
 script = ExtResource("1_cat")
-items = Array[ExtResource("0_item")]([ExtResource("2_pipweed_seed"), ExtResource("3_emberroot_seed"), ExtResource("4_bluecap_seed"), ExtResource("5_pipweed"), ExtResource("6_emberroot"), ExtResource("7_bluecap")])
+items = Array[ExtResource("0_item")]([ExtResource("2_pipweed_seed"), ExtResource("3_emberroot_seed"), ExtResource("4_bluecap_seed"), ExtResource("5_pipweed"), ExtResource("6_emberroot"), ExtResource("7_bluecap"), ExtResource("8_bond_charm")])

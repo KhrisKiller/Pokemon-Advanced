@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="KithData" format=3]
+
+[ext_resource type="Script" path="res://game/kith/kith_data.gd" id="1_kith"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/kith_rillet.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_kith")
+id = &"rillet"
+display_name = "Rillet"
+description = "An otter-like kith that stores water in its tail. Once it trusts you, it waters your crops."
+aspects = Array[StringName]([&"tide"])
+favourite_food_tags = Array[StringName]([&"fungus"])
+liked_food_tags = Array[StringName]([&"food"])
+helper_abilities = Array[StringName]([&"water"])
+bond_calm_needed = 2
+sprite = ExtResource("2_tex")
+ui_color = Color(0.310, 0.525, 0.776, 1)

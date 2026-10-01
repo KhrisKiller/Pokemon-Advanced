@@ -1,7 +1,7 @@
 class_name Hud
 extends CanvasLayer
-## In-game HUD: date/time, money, selected seed, interaction prompt, message box, bag panel,
-## location banner and full-screen fade.
+## In-game HUD: date/time, money, selected seed, active kith, interaction prompt, message box,
+## bag panel, shop and kith menus, location banner and full-screen fade.
 
 const INVENTORY_MODAL := &"inventory"
 
@@ -15,8 +15,13 @@ const INVENTORY_MODAL := &"inventory"
 @onready var _seed_label: Label = %SeedLabel
 @onready var _inventory_panel: PanelContainer = %InventoryPanel
 @onready var _inventory_items: Label = %Items
+@onready var _kith_label: Label = %KithLabel
+@onready var _menu_root: Control = $Root
 
+var shop_menu: ShopMenu
+var kith_menu: KithMenu
 var _player_state: PlayerState
+var _session: GameSession
 
 var _prompt_target: Interactable = null
 var _open_modals: Dictionary[StringName, bool] = {}
@@ -32,6 +37,61 @@ func _ready() -> void:
 	EventBus.modal_opened.connect(_on_modal_opened)
 	EventBus.modal_closed.connect(_on_modal_closed)
 	_update_clock(Clock.time)
+	_kith_label.hide()
+	shop_menu = ShopMenu.new()
+	shop_menu.name = "ShopMenu"
+	_menu_root.add_child(shop_menu)
+	kith_menu = KithMenu.new()
+	kith_menu.name = "KithMenu"
+	_menu_root.add_child(kith_menu)
+	EventBus.shop_requested.connect(_on_shop_requested)
+
+
+## Binds everything session-related: belongings, the menus and the active kith label.
+func bind_session(session: GameSession) -> void:
+	_session = session
+	bind_player_state(session.player)
+	shop_menu.bind(session.player, ContentDB)
+	kith_menu.bind(session, ContentDB)
+	session.kith.changed.connect(_refresh_kith)
+	session.kith.active_changed.connect(_on_active_kith_changed)
+	_refresh_kith()
+
+
+## Opens the party screen if nothing else is open. Returns true if it opened.
+func open_kith_menu() -> bool:
+	if _session == null or not _open_modals.is_empty():
+		return false
+	return kith_menu.open_party()
+
+
+func get_kith_text() -> String:
+	return _kith_label.text if _kith_label.visible else ""
+
+
+func _on_shop_requested(shop_id: StringName, speaker: String) -> void:
+	var shop := ContentDB.get_shop(shop_id)
+	if shop == null:
+		push_warning("Unknown shop '%s'." % shop_id)
+		return
+	shop_menu.open_shop(shop, speaker)
+
+
+func _on_active_kith_changed(_uid: StringName) -> void:
+	_refresh_kith()
+
+
+func _refresh_kith() -> void:
+	if _session == null:
+		return
+	var kith := _session.kith.get_active()
+	if kith == null:
+		_kith_label.text = ""
+	else:
+		var species := _session.kith.get_species(kith)
+		_kith_label.text = "%s · Trust %d %s   [%s] kith" % [kith.get_display_name(species), kith.trust,
+				_session.kith_config.trust_label(kith.trust), _describe_action(&"open_kith")]
+	_kith_label.visible = kith != null and _open_modals.is_empty()
 
 
 ## Connects the prompt to a player's interaction probe.
@@ -181,12 +241,14 @@ func _on_modal_opened(modal_id: StringName) -> void:
 	_open_modals[modal_id] = true
 	_refresh_prompt()
 	_seed_label.visible = false
+	_kith_label.visible = false
 
 
 func _on_modal_closed(modal_id: StringName) -> void:
 	_open_modals.erase(modal_id)
 	_refresh_prompt()
 	_seed_label.visible = _open_modals.is_empty()
+	_refresh_kith()
 
 
 ## Name of the first keyboard key bound to an action (controller glyphs come later).

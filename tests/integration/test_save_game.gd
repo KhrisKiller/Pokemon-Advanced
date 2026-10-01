@@ -38,8 +38,8 @@ func _restart() -> void:
 
 
 func test_main_registers_session_providers_in_order() -> void:
-	# Phase 3 added player_state (bag, money) and farm; the player section still loads last.
-	assert_eq(SaveService.get_provider_ids(), [&"clock", &"world", &"player_state", &"farm", &"player"] as Array[StringName])
+	# Phase 3 added player_state (bag, money) and farm, Phase 4 kith; the player section still loads last.
+	assert_eq(SaveService.get_provider_ids(), [&"clock", &"world", &"player_state", &"farm", &"kith", &"player"] as Array[StringName])
 
 
 func test_providers_unregister_when_main_leaves() -> void:

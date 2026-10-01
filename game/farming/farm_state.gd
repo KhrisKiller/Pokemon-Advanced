@@ -103,6 +103,31 @@ func harvest(plot_id: StringName) -> Dictionary:
 	return produce
 
 
+# --- helpers ---------------------------------------------------------------------------------
+
+## Work done on the farm by something other than the player's button (kith helpers, later
+## sprinklers). Returns the plots affected, at most `limit`, chosen in stable plot-id order.
+## &"water": dry, tilled plots with a growing (not yet mature) crop.
+func apply_helper_action(action: StringName, limit: int) -> Array[StringName]:
+	var affected: Array[StringName] = []
+	if limit <= 0:
+		return affected
+	match action:
+		&"water":
+			var ids := get_plot_ids()
+			ids.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
+			for id in ids:
+				if affected.size() >= limit:
+					break
+				var plot := _plots[id]
+				if plot.tilled and not plot.watered and plot.has_crop() and not is_mature(id):
+					water(id)
+					affected.append(id)
+		_:
+			push_warning("Unknown farm helper action '%s'." % action)
+	return affected
+
+
 # --- daily tick ------------------------------------------------------------------------------
 
 ## End of day: watered, growing crops gain a day; then all soil dries. Returns a summary

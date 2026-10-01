@@ -60,6 +60,10 @@ cycle_seed={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":81), Object(InputEventJoypadButton,"device":-1,"button_index":9)]
 }
+open_kith={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":75), Object(InputEventJoypadButton,"device":-1,"button_index":2)]
+}
 toggle_inventory={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":73), Object(InputEventJoypadButton,"device":-1,"button_index":3)]

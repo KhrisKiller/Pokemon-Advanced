@@ -8,6 +8,12 @@ starting_money = 50
 starting_items = {
 "pipweed_seed": 6,
 "emberroot_seed": 3,
-"bluecap_seed": 3
+"bluecap_seed": 3,
+"bond_charm": 3
+}
+upgrade_grants = {
+"2": {
+"bond_charm": 3
+}
 }
 inventory_slots = 24

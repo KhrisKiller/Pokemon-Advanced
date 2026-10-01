@@ -1,0 +1,193 @@
+{
+	"format_version": 2,
+	"meta": {
+		"game_version": "0.2.0",
+		"saved_at": "2026-10-01T17:45:39Z",
+		"summary": {
+			"date": "Tideday, Spring 2 · Year 1",
+			"location": "Wrenfield",
+			"time": "8:00 AM"
+		}
+	},
+	"sections": {
+		"clock": {
+			"day_index": 1,
+			"minute_of_day": 480,
+			"version": 1
+		},
+		"farm": {
+			"plots": {
+				"farm:18,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:18,23": {
+					"crop": {
+						"crop_id": "bluecap",
+						"days_grown": 1,
+						"times_harvested": 0
+					},
+					"tilled": true,
+					"watered": false
+				},
+				"farm:19,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:19,23": {
+					"crop": null,
+					"tilled": true,
+					"watered": false
+				},
+				"farm:20,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:20,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:21,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:21,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:22,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:22,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:23,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:23,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:24,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:24,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:25,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:25,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:26,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:26,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:27,22": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				},
+				"farm:27,23": {
+					"crop": null,
+					"tilled": false,
+					"watered": false
+				}
+			},
+			"version": 1
+		},
+		"player": {
+			"facing": "down",
+			"map_id": "farm",
+			"position": [
+				352.0,
+				360.0
+			],
+			"version": 2
+		},
+		"player_state": {
+			"inventory": {
+				"capacity": 24,
+				"slots": [
+					{
+						"item_id": "pipweed_seed",
+						"quantity": 6
+					},
+					{
+						"item_id": "emberroot_seed",
+						"quantity": 3
+					},
+					{
+						"item_id": "bluecap_seed",
+						"quantity": 2
+					},
+					{
+						"item_id": "pipweed",
+						"quantity": 4
+					},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{},
+					{}
+				],
+				"version": 1
+			},
+			"money": 120,
+			"selected_seed": "pipweed_seed",
+			"version": 1
+		},
+		"world": {
+			"discovered": [
+				"farm"
+			],
+			"flags": {
+				"met_tamsin": true
+			},
+			"version": 1
+		}
+	}
+}

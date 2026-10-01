@@ -11,7 +11,7 @@ T.........,..............Scc.....,......RRRRRR.......T
 T...........,.......RRRRR.cc.RRRRR......RRRRRR.......T
 T...................RRRRR.cc.RRRRR......RRRRRR.:.....T
 T...................RRRRR.cc.RRRRR......RRRRRR.......T
-T...T...RRRRRRR.......S..:cc,..S..........S..........T
+T...T...RRRRRRR.......S.Q:cc,..S..........S..........T
 T.......RRRRRRR...cccccccccccccccccc.................T
 T.....:.RRRRRRR...cccccccccccccccccc.....:......:....T
 T.......RRRRRRR...cccccccccccccccccc..S.............:T

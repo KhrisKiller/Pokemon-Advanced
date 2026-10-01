@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://game/main/main.gd" id="1_main"]
 [ext_resource type="Resource" path="res://data/maps/map_catalog.tres" id="2_catalog"]
@@ -7,12 +7,14 @@
 [ext_resource type="Gradient" path="res://data/config/day_night_gradient.tres" id="5_gradient"]
 [ext_resource type="PackedScene" path="res://game/ui/hud/hud.tscn" id="6_hud"]
 [ext_resource type="Resource" path="res://data/config/new_game.tres" id="7_new_game"]
+[ext_resource type="Resource" path="res://data/config/kith_config.tres" id="8_kith_config"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
 map_catalog = ExtResource("2_catalog")
 player_scene = ExtResource("3_player")
 new_game = ExtResource("7_new_game")
+kith_config = ExtResource("8_kith_config")
 
 [node name="World" type="Node2D" parent="."]
 

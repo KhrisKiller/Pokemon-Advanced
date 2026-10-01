@@ -7,6 +7,6 @@ script = ExtResource("1_item")
 id = &"pipweed"
 display_name = "Pipweed"
 description = "A pale, crunchy root. Quick to grow."
-tags = Array[StringName]([&"crop", &"food"])
+tags = Array[StringName]([&"crop", &"food", &"root"])
 base_value = 35
 stack_max = 99

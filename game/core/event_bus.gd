@@ -33,3 +33,11 @@ signal map_transition_requested(map_id: StringName, spawn_id: StringName, source
 ## A map finished loading and the player is in it.
 @warning_ignore("unused_signal")
 signal map_changed(map_id: StringName)
+
+## Someone (e.g. a shopkeeper NPC) wants the shop with this id (data/shops/) opened.
+@warning_ignore("unused_signal")
+signal shop_requested(shop_id: StringName, speaker: String)
+
+## A kith joined the party (bonded). `uid` is its KithState uid.
+@warning_ignore("unused_signal")
+signal kith_bonded(uid: StringName, species_id: StringName)

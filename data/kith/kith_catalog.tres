@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="KithCatalog" format=3]
+
+[ext_resource type="Script" path="res://game/kith/kith_catalog.gd" id="1_cat"]
+[ext_resource type="Script" path="res://game/kith/kith_data.gd" id="0_kith"]
+[ext_resource type="Resource" path="res://data/kith/bramblehog.tres" id="2_bramblehog"]
+[ext_resource type="Resource" path="res://data/kith/sprigmole.tres" id="3_sprigmole"]
+[ext_resource type="Resource" path="res://data/kith/cindercoot.tres" id="4_cindercoot"]
+[ext_resource type="Resource" path="res://data/kith/rillet.tres" id="5_rillet"]
+
+[resource]
+script = ExtResource("1_cat")
+species = Array[ExtResource("0_kith")]([ExtResource("2_bramblehog"), ExtResource("3_sprigmole"), ExtResource("4_cindercoot"), ExtResource("5_rillet")])

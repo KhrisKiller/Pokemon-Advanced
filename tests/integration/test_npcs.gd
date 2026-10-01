@@ -93,7 +93,7 @@ func test_npc_body_blocks_the_player() -> void:
 
 func test_npcs_are_placed_in_their_maps() -> void:
 	var catalog: MapCatalog = load("res://data/maps/map_catalog.tres")
-	var expected := {&"village": &"tamsin", &"forest": &"odile"}
+	var expected := {&"village": [&"tamsin", &"pell"], &"forest": [&"odile"]}
 	for map_id: StringName in expected:
 		var map := catalog.instantiate_map(map_id)
 		add_to_root(map)
@@ -101,7 +101,11 @@ func test_npcs_are_placed_in_their_maps() -> void:
 		for node in map.entities.get_children():
 			if node is Npc:
 				found.append((node as Npc).data.id)
-		assert_eq(found, [expected[map_id]] as Array[StringName], "%s NPCs" % map_id)
+		found.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
+		var want: Array[StringName] = []
+		want.assign(expected[map_id])
+		want.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
+		assert_eq(found, want, "%s NPCs" % map_id)
 
 
 func test_talking_in_game_shows_speaker_and_persists_after_restart() -> void:

@@ -80,3 +80,20 @@ func test_missing_section_gives_new_game_belongings() -> void:
 	player.load_save_data({})
 	assert_eq(player.money, config.starting_money)
 	assert_eq(player.inventory.count(&"pipweed_seed"), int(config.starting_items["pipweed_seed"]))
+
+
+func test_new_game_starts_with_bond_charms() -> void:
+	assert_eq(player.inventory.count(&"bond_charm"), 3)
+
+
+func test_pre_phase4_section_gets_the_upgrade_grant_once() -> void:
+	var old := {"version": 1, "money": 80, "selected_seed": "pipweed_seed",
+			"inventory": {"slots": [{"item_id": "pipweed_seed", "quantity": 2}]}}
+	player.load_save_data(old)
+	assert_eq(player.inventory.count(&"bond_charm"), 3, "version 1 saves get the Phase 4 starter charms")
+	assert_eq(player.money, 80)
+	var current := player.to_save_data()
+	assert_eq(current["version"], PlayerState.SAVE_VERSION)
+	var again := PlayerState.new(config, ContentDB)
+	again.load_save_data(JSON.parse_string(JSON.stringify(current)))
+	assert_eq(again.inventory.count(&"bond_charm"), 3, "not granted twice")

@@ -57,6 +57,11 @@ func _init() -> void:
 	_save(_make_root_crop(C.pip_root), "crop_pipweed.png")
 	_save(_make_root_crop(C.ember_root), "crop_emberroot.png")
 	_save(_make_mushroom_crop(), "crop_bluecap.png")
+	_save(_make_person({"shirt": Color("2f6f9a"), "shirt_dark": Color("23557a"), "hair": Color("1d4f5c"), "skin": Color("9fc8c0")}), "npc_pell.png")
+	_save(_make_kith_sprigmole(), "kith_sprigmole.png")
+	_save(_make_kith_rillet(), "kith_rillet.png")
+	_save(_make_kith_cindercoot(), "kith_cindercoot.png")
+	_save(_make_kith_bramblehog(), "kith_bramblehog.png")
 	_save(_make_person({"shirt": Color("7a5a9e"), "shirt_dark": Color("5c4379"), "hair": Color("b9b3a8")}), "npc_tamsin.png")
 	_save(_make_person({"shirt": Color("5f8f3e"), "shirt_dark": Color("466c2d"), "hair": Color("2f2a24"), "skin": Color("c79a73")}), "npc_odile.png")
 	print("Placeholder art written to %s" % OUT_DIR)
@@ -322,4 +327,63 @@ func _make_mushroom_crop() -> Image:
 		_rect(img, 48 + cap.x + 2, cap.y + 3, 2, 5, C.stem)
 		_rect(img, 48 + cap.x, cap.y, 6, 3, C.bluecap)
 		_rect(img, 48 + cap.x + 1, cap.y, 3, 1, C.bluecap_light)
+	return img
+
+
+# --- kith (placeholder silhouettes, 16×16, origin at the feet) -------------------------------
+
+## Blind mole with a sapling on its back.
+func _make_kith_sprigmole() -> Image:
+	var img := _new_image(16, 16)
+	_rect(img, 3, 9, 10, 6, Color("7a5a44"))
+	_rect(img, 2, 11, 12, 3, Color("7a5a44"))
+	_rect(img, 12, 11, 3, 2, Color("e8a8a0"))  # nose
+	_rect(img, 4, 14, 2, 2, Color("5e4433"))
+	_rect(img, 10, 14, 2, 2, Color("5e4433"))
+	_rect(img, 7, 4, 1, 5, Color("6a4a2c"))  # sapling
+	_rect(img, 4, 2, 4, 3, C.leaf_crop)
+	_rect(img, 8, 3, 4, 3, C.leaf_crop_dark)
+	return img
+
+
+## Otter-like with a round water bladder tail.
+func _make_kith_rillet() -> Image:
+	var img := _new_image(16, 16)
+	_rect(img, 4, 8, 8, 6, Color("4f86c6"))
+	_rect(img, 9, 5, 5, 5, Color("4f86c6"))  # head
+	_rect(img, 12, 6, 1, 1, C.outline)
+	_rect(img, 1, 9, 4, 4, Color("8fc6f0"))  # bladder tail
+	_rect(img, 2, 10, 2, 2, Color("cfe8fa"))
+	_rect(img, 5, 14, 2, 2, Color("335f94"))
+	_rect(img, 9, 14, 2, 2, Color("335f94"))
+	return img
+
+
+## Marsh bird with a smouldering crest.
+func _make_kith_cindercoot() -> Image:
+	var img := _new_image(16, 16)
+	_rect(img, 4, 7, 7, 6, Color("3a3438"))
+	_rect(img, 9, 4, 4, 4, Color("3a3438"))  # head
+	_rect(img, 13, 6, 2, 1, Color("e8c060"))  # beak
+	_rect(img, 11, 5, 1, 1, Color("f0f0f0"))
+	_rect(img, 9, 1, 2, 3, Color("f07a2f"))  # crest
+	_rect(img, 11, 2, 1, 2, Color("ffc04a"))
+	_rect(img, 6, 13, 1, 3, Color("e8c060"))
+	_rect(img, 9, 13, 1, 3, Color("e8c060"))
+	return img
+
+
+## Round hedgehog with bramble spines.
+func _make_kith_bramblehog() -> Image:
+	var img := _new_image(16, 16)
+	_rect(img, 3, 7, 10, 7, Color("8a6a4a"))
+	_rect(img, 2, 9, 12, 4, Color("8a6a4a"))
+	for x in [3, 5, 7, 9, 11]:
+		_rect(img, x, 5, 1, 3, C.leaf_crop_dark)
+		_rect(img, x + 1, 4, 1, 2, C.leaf_crop)
+	_rect(img, 6, 6, 2, 2, Color("c0304a"))  # berry
+	_rect(img, 12, 10, 3, 3, Color("d8b890"))  # face
+	_rect(img, 13, 10, 1, 1, C.outline)
+	_rect(img, 4, 14, 2, 2, Color("5e4433"))
+	_rect(img, 10, 14, 2, 2, Color("5e4433"))
 	return img

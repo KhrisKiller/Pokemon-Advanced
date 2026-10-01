@@ -20,6 +20,7 @@ const CRATE_SCENE := "res://game/world/props/crate.tscn"
 const BED_SCENE := "res://game/world/props/bed.tscn"
 const NPC_SCENE := "res://game/characters/npc/npc.tscn"
 const FARM_PLOT_SCENE := "res://game/farming/farm_plot.tscn"
+const WILD_KITH_SCENE := "res://game/kith/world/wild_kith.tscn"
 const SHIPPING_CRATE_SCENE := "res://game/economy/shipping_crate.tscn"
 const T := 16
 
@@ -50,6 +51,7 @@ const TERRAIN := {
 ##   {type: "sign", ground}                     next entry of `signs` (row-major order)
 ##   {type: "npc", data, name, ground}          Npc scene with the NpcData resource at `data`
 ##   {type: "plot", ground}                     FarmPlot with plot_id "<map_id>:<x>,<y>"
+##   {type: "wild_kith", kith, ground}          WildKith of species `kith`, spawn_id "<map_id>:<x>,<y>"
 ##   {type: "ground", ground}                   plain ground (reserved for a later phase)
 const MAPS := {
 	"test_map": {
@@ -87,6 +89,7 @@ const MAPS := {
 			"S": {"type": "sign", "ground": "."},
 			"p": {"type": "plot", "ground": "s"},
 			"X": {"type": "prop", "scene": SHIPPING_CRATE_SCENE, "name": "ShippingCrate", "ground": "."},
+			"7": {"type": "wild_kith", "kith": "sprigmole", "ground": "."},
 		},
 		"signs": [
 			{"name": "FarmSign", "lines": ["WRENFIELD", "The soil in the fenced field is yours to work: till, plant, water, and sleep.", "Sell your harvest at the green crate by the house."]},
@@ -101,10 +104,11 @@ const MAPS := {
 			">": {"type": "exit", "target": "farm", "spawn": "from_village", "ground": "="},
 			"S": {"type": "sign", "ground": "."},
 			"N": {"type": "npc", "data": "res://data/npcs/tamsin.tres", "name": "Tamsin", "ground": "c"},
+			"Q": {"type": "npc", "data": "res://data/npcs/pell.tres", "name": "Pell", "ground": "."},
 		},
 		"signs": [
 			{"name": "StationSign", "lines": ["Brambleford Station.", "(Blockout: building interiors come later.)"]},
-			{"name": "StoreSign", "lines": ["General Store.", "(Closed — shops arrive with the economy phase.)"]},
+			{"name": "StoreSign", "lines": ["General Store.", "(Closed for now. Pell sells seeds out front.)"]},
 			{"name": "HallSign", "lines": ["Reeve's Hall."]},
 			{"name": "HouseSignNorth", "lines": ["A quiet cottage."]},
 			{"name": "EastRoadSign", "lines": ["Wrenfield →"]},
@@ -121,9 +125,12 @@ const MAPS := {
 			"<": {"type": "exit", "target": "farm", "spawn": "from_forest", "ground": "="},
 			"S": {"type": "sign", "ground": "."},
 			"N": {"type": "npc", "data": "res://data/npcs/odile.tres", "name": "Odile", "ground": "."},
+			"7": {"type": "wild_kith", "kith": "rillet", "ground": "."},
+			"8": {"type": "wild_kith", "kith": "bramblehog", "ground": "g"},
+			"9": {"type": "wild_kith", "kith": "cindercoot", "ground": "."},
 		},
 		"signs": [
-			{"name": "PondSign", "lines": ["Mirelight Pond.", "(Blockout: a kith habitat will live here.)"]},
+			{"name": "PondSign", "lines": ["Mirelight Pond.", "Wild kith come here to drink. Bring food they like, and a Bond Charm."]},
 			{"name": "LogSign", "lines": ["A fallen log blocks the path north.", "(Blockout: a haul gate for a later phase.)"]},
 			{"name": "ForestSign", "lines": ["WHISPERWOOD", "Stay on the paths."]},
 		],
@@ -292,6 +299,11 @@ func _build_map(map_id: String, config: Dictionary, tileset: TileSet) -> PackedS
 						var plot := _instance(FARM_PLOT_SCENE, "Plot_%d_%d" % [x, y], base)
 						plot.set("plot_id", StringName("%s:%d,%d" % [map_id, x, y]))
 						_add(entities, plot, root)
+					"wild_kith":
+						var kith := _instance(WILD_KITH_SCENE, "Wild%s_%d_%d" % [String(marker["kith"]).to_pascal_case(), x, y], base)
+						kith.set("kith_id", StringName(marker["kith"]))
+						kith.set("spawn_id", StringName("%s:%d,%d" % [map_id, x, y]))
+						_add(entities, kith, root)
 					"ground":
 						pass
 			var entry: Array = TERRAIN[terrain_key]

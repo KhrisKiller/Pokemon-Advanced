@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ShopCatalog" format=3]
+
+[ext_resource type="Script" path="res://game/economy/shop_catalog.gd" id="1_cat"]
+[ext_resource type="Script" path="res://game/economy/shop_data.gd" id="0_shop"]
+[ext_resource type="Resource" path="res://data/shops/seed_shop.tres" id="2_seed_shop"]
+
+[resource]
+script = ExtResource("1_cat")
+shops = Array[ExtResource("0_shop")]([ExtResource("2_seed_shop")])

@@ -7,6 +7,6 @@ script = ExtResource("1_item")
 id = &"emberroot"
 display_name = "Emberroot"
 description = "A warm red root that keeps well."
-tags = Array[StringName]([&"crop", &"food"])
+tags = Array[StringName]([&"crop", &"food", &"root", &"spicy"])
 base_value = 80
 stack_max = 99

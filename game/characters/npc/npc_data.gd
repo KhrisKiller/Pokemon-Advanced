@@ -11,6 +11,8 @@ extends Resource
 @export_multiline var first_meeting_lines: PackedStringArray = []
 ## Said on every later conversation.
 @export_multiline var repeat_lines: PackedStringArray = []
+## When set, talking opens this shop (data/shops/) instead of the dialogue lines.
+@export var shop_id: StringName = &""
 
 
 ## World flag set after the first conversation (persisted by WorldState).

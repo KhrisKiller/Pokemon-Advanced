@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="KithConfig" format=3]
+
+[ext_resource type="Script" path="res://game/kith/kith_config.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+party_limit = 6
+trust_max = 100
+trust_thresholds = Array[int]([0, 25, 50, 75])
+trust_labels = PackedStringArray("Unfamiliar", "Friendly", "Trusted", "Bonded")
+starting_trust = 10
+favourite_food_trust = 8
+liked_food_trust = 3
+feeds_per_day = 1
+favourite_food_calm = 2
+liked_food_calm = 1
+bond_item_id = &"bond_charm"
+watering_min_trust = 25
+watering_daily_limit = 3

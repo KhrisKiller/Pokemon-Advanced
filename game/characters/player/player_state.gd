@@ -6,7 +6,8 @@ extends RefCounted
 signal money_changed(money: int)
 signal selected_seed_changed(item_id: StringName)
 
-const SAVE_VERSION := 1
+## 1: Phase 3. 2: Phase 4 (Bond Charms granted to older saves via NewGameConfig.upgrade_grants).
+const SAVE_VERSION := 2
 
 var inventory: Inventory
 var money: int = 0
@@ -114,5 +115,18 @@ func load_save_data(data: Dictionary) -> void:
 	inventory.from_dict(data.get("inventory", {}))
 	_set_money(int(data.get("money", 0)))
 	selected_seed = StringName(str(data.get("selected_seed", "")))
+	_apply_upgrade_grants(int(data.get("version", 1)))
 	_ensure_valid_seed()
 	selected_seed_changed.emit(selected_seed)
+
+
+## Gives an older save the items that newer versions start with (once: the next save is current).
+func _apply_upgrade_grants(saved_version: int) -> void:
+	for key: Variant in new_game.upgrade_grants:
+		if int(str(key)) <= saved_version:
+			continue
+		var grants: Dictionary = new_game.upgrade_grants[key]
+		for item_id: Variant in grants:
+			var left := inventory.add(StringName(str(item_id)), int(grants[item_id]))
+			if left > 0:
+				push_warning("PlayerState: no room for %d %s granted by save upgrade" % [left, item_id])

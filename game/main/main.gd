@@ -8,7 +8,7 @@ extends Node
 ##   the day transition (sleep or curfew → next morning → auto-save).
 ## - Save provider for the "player" section (map id, position, facing). On start it continues
 ##   from `save_slot` if a save exists.
-## - Owns the GameSession (player belongings, farm) and injects it into map objects that need it.
+## - Owns the GameSession (player belongings, farm, kith) and injects it into map objects that need it.
 ##
 ## The day transition is the single place where end-of-day work happens. Later phases add, in
 ## this order: crop growth, world tick, NPC schedule reset — all before the auto-save
@@ -23,6 +23,8 @@ const REASON_EXHAUSTED := &"exhausted"
 @export var player_scene: PackedScene
 ## Starting belongings (money, seeds) for a new game.
 @export var new_game: NewGameConfig
+## Kith rules (party size, Trust, helpers).
+@export var kith_config: KithConfig
 ## Where a new game begins.
 @export var start_map_id: StringName = &"farm"
 @export var start_spawn: StringName = &"Default"
@@ -45,8 +47,8 @@ var _transitioning := false
 
 
 func _ready() -> void:
-	session = GameSession.new(new_game, ContentDB)
-	hud.bind_player_state(session.player)
+	session = GameSession.new(new_game, ContentDB, kith_config)
+	hud.bind_session(session)
 	change_map(start_map_id, start_spawn)
 	EventBus.sleep_requested.connect(_on_sleep_requested)
 	EventBus.map_transition_requested.connect(_on_map_transition_requested)
@@ -64,7 +66,7 @@ func _exit_tree() -> void:
 		SaveService.unregister(provider)
 
 
-## Load order: time, world, player belongings, farm, then the player (which may change the map).
+## Load order: time, world, player belongings, farm, kith, then the player (which may change the map).
 func _save_providers() -> Array[Object]:
 	var providers: Array[Object] = [Clock, WorldState]
 	providers.append_array(session.get_save_providers())
@@ -158,8 +160,11 @@ func run_day_transition(reason: StringName) -> void:
 	await hud.fade_out(fade_duration)
 
 	Clock.end_day()
-	# Daily tick, in order: farming growth, (later: world tick, NPC schedules) — then the auto-save.
+	# Daily tick, in order: farming growth, kith morning (reset + helper work), (later: world tick,
+	# NPC schedules) — then the auto-save.
 	var growth := session.farm.advance_day()
+	session.kith.start_new_day()
+	var helped := KithHelpers.run_daily(session.kith, session.farm, session.kith_config)
 	if reason == REASON_EXHAUSTED:
 		if current_map.map_id != home_map_id and map_catalog.has_map(home_map_id):
 			change_map(home_map_id, home_spawn_id)
@@ -172,10 +177,10 @@ func run_day_transition(reason: StringName) -> void:
 	await hud.fade_in(fade_duration)
 	_end_transition(TRANSITION_MODAL)
 	EventBus.day_transition_finished.emit(reason)
-	EventBus.dialogue_requested.emit(_wake_up_lines(reason, saved, growth))
+	EventBus.dialogue_requested.emit(_wake_up_lines(reason, saved, growth, helped))
 
 
-func _wake_up_lines(reason: StringName, saved: bool, growth: Dictionary = {}) -> PackedStringArray:
+func _wake_up_lines(reason: StringName, saved: bool, growth: Dictionary = {}, helped: Array[Dictionary] = []) -> PackedStringArray:
 	var lines := PackedStringArray()
 	if reason == REASON_EXHAUSTED:
 		lines.append("You collapsed from exhaustion and somehow made it home.")
@@ -187,6 +192,9 @@ func _wake_up_lines(reason: StringName, saved: bool, growth: Dictionary = {}) ->
 		lines.append("%d crop%s ready to harvest!" % [matured, " is" if matured == 1 else "s are"])
 	elif int(growth.get("grown", 0)) > 0:
 		lines.append("Your watered crops grew overnight.")
+	for report in helped:
+		var plots: Array = report["plots"]
+		lines.append("%s watered %d plot%s." % [report["name"], plots.size(), "" if plots.size() == 1 else "s"])
 	if saved:
 		lines.append("(Game saved.)")
 	return lines
@@ -207,6 +215,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed(&"cycle_seed") and player.is_control_enabled():
 		session.player.cycle_seed()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"open_kith") and not event.is_echo() and player.is_control_enabled():
+		hud.open_kith_menu()
 		get_viewport().set_input_as_handled()
 		return
 	if not OS.is_debug_build():
