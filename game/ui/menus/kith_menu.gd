@@ -82,8 +82,16 @@ func open_rename() -> void:
 	var kith := _session.kith.get_kith(_uid)
 	_name_edit.text = kith.nickname
 	_name_edit.show()
-	_name_edit.grab_focus.call_deferred()
+	_start_typing.call_deferred()
 	refresh()
+
+
+## Focus alone doesn't always start editing (e.g. while the key that chose "Rename" is still held).
+func _start_typing() -> void:
+	if page != Page.RENAME:
+		return
+	_name_edit.grab_focus()
+	_name_edit.edit()
 
 
 func rename(nickname: String) -> void:

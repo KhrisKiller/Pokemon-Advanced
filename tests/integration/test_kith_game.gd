@@ -89,11 +89,13 @@ func _sleep() -> PackedStringArray:
 
 
 func _press(action: StringName) -> void:
-	var event := InputEventAction.new()
-	event.action = action
-	event.pressed = true
-	Input.parse_input_event(event)
-	await wait_frames(2)
+	for pressed in [true, false]:
+		var event := InputEventAction.new()
+		event.action = action
+		event.pressed = pressed
+		Input.parse_input_event(event)
+		await wait_frames(1)
+	await wait_frames(1)
 
 
 func _planted(count: int) -> Array[StringName]:
