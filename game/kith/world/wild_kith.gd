@@ -23,6 +23,9 @@ func _ready() -> void:
 	var species := get_species()
 	if species != null and species.sprite != null:
 		_sprite.texture = species.sprite
+	# Bonded/calm live in WorldState, which a load can replace while this map stays loaded.
+	WorldState.flag_changed.connect(_on_flag_changed)
+	WorldState.loaded.connect(_on_world_loaded)
 	_refresh()
 
 
@@ -59,6 +62,17 @@ func _on_interact(_actor: Node) -> void:
 		EventBus.kith_bonded.emit(kith.uid, kith.species_id)
 	if result["message"] != "":
 		EventBus.dialogue_requested.emit(PackedStringArray([result["message"]]))
+	prompt_changed.emit()
+	_refresh()
+
+
+func _on_flag_changed(flag: StringName, _value: Variant) -> void:
+	if flag == KithBonding.bonded_flag(spawn_id) or flag == KithBonding.calm_flag(spawn_id):
+		prompt_changed.emit()
+		_refresh()
+
+
+func _on_world_loaded() -> void:
 	prompt_changed.emit()
 	_refresh()
 

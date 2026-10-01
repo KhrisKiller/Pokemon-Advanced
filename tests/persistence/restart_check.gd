@@ -16,6 +16,7 @@ const EXPECTED_FLAG := &"restart_check_flag"
 const EXPECTED_COUNTER := &"restart_check_counter"
 const GROWING_PLOT := &"farm:18,23"  # emberroot, 2 watered days, watered again today
 const HARVESTED_PLOT := &"farm:19,23"  # pipweed harvested into the bag
+const KITH_SPOT := &"forest:50,12"  # wild Rillet, bonded in the write phase
 
 var _failures: PackedStringArray = []
 
@@ -56,6 +57,7 @@ func _write() -> void:
 	_check(Clock.time.day_index == 0, "write phase must start a new game")
 	_check(main.current_map.map_id == &"farm", "new game must start on the farm")
 	_write_farm(main)
+	_write_kith(main)
 	_check(main.change_map(EXPECTED_MAP, &"from_farm"), "could not change map")
 	for i in EXPECTED_DAY:
 		Clock.end_day()
@@ -91,6 +93,45 @@ func _write_farm(main: Main) -> void:
 		player.cycle_seed()
 
 
+## Bonds the forest Rillet through the real rules (food, then a Bond Charm), feeds it, names it,
+## and adds a second kith that is made active.
+func _write_kith(main: Main) -> void:
+	var player := main.session.player
+	var roster := main.session.kith
+	var rillet := ContentDB.get_kith(&"rillet")
+	player.inventory.add(&"bluecap", 2)
+	for step in 2:  # calm with a favourite food, then the charm
+		var result := KithBonding.perform(rillet, KITH_SPOT, WorldState, player, roster, main.session.kith_config, ContentDB, Clock.time.day_index)
+		_check(result["ok"], "bonding step %d: %s" % [step, result["message"]])
+	var kith := roster.get_active()
+	_check(kith != null and kith.species_id == &"rillet", "rillet bonded")
+	if kith == null:
+		return
+	var fed := KithCare.feed(kith, rillet, &"bluecap", player.inventory, ContentDB, main.session.kith_config)
+	_check(fed["ok"], "feeding: %s" % fed["message"])
+	roster.set_nickname(kith.uid, "Puddle")
+	var mole := roster.add_new(&"sprigmole", 0, &"test")
+	roster.set_active(mole.uid)
+
+
+func _verify_kith(main: Main) -> void:
+	var roster := main.session.kith
+	var config := main.session.kith_config
+	_check(roster.size() == 2, "party size %d" % roster.size())
+	var members := roster.get_members()
+	if members.size() != 2:
+		return
+	var rillet := members[0]
+	_check(rillet.species_id == &"rillet" and rillet.nickname == "Puddle", "rillet identity")
+	_check(rillet.trust == config.starting_trust + config.favourite_food_trust, "rillet trust %d" % rillet.trust)
+	_check(rillet.origin == KITH_SPOT, "rillet origin")
+	_check(rillet.uid != members[1].uid, "unique ids")
+	_check(roster.active_uid == members[1].uid, "active kith")
+	_check(KithBonding.is_bonded(WorldState, KITH_SPOT), "bonded flag")
+	_check(main.session.player.inventory.count(&"bond_charm") == 2, "bond charms %d" % main.session.player.inventory.count(&"bond_charm"))
+	_check(main.hud.get_kith_text().begins_with("Sprigmole · Trust 10"), "HUD kith '%s'" % main.hud.get_kith_text())
+
+
 func _verify_farm(main: Main) -> void:
 	var farm := main.session.farm
 	var player := main.session.player
@@ -123,6 +164,7 @@ func _verify() -> void:
 	_check(WorldState.is_discovered(&"farm") and WorldState.is_discovered(EXPECTED_MAP), "discovered locations missing")
 	_check(main.hud.get_clock_text() == Clock.time.format_clock(), "HUD not refreshed after load")
 	_verify_farm(main)
+	_verify_kith(main)
 	SaveService.delete_all_saves()
 
 

@@ -51,7 +51,7 @@ func open_menu() -> void:
 	if visible:
 		return
 	_selected = 0
-	_message.text = ""
+	set_message("")
 	show()
 	Clock.request_pause(modal_id)
 	EventBus.modal_opened.emit(modal_id)
@@ -129,6 +129,7 @@ func get_message() -> String:
 
 func set_message(text: String) -> void:
 	_message.text = text
+	_message.visible = text != ""
 
 
 # --- for subclasses --------------------------------------------------------------------------

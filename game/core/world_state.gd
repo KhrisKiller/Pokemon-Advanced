@@ -7,6 +7,8 @@ extends Node
 
 signal flag_changed(flag: StringName, value: Variant)
 signal location_discovered(map_id: StringName)
+## All flags and locations were replaced by a loaded save (no flag_changed per flag).
+signal loaded
 
 const SAVE_VERSION := 1
 
@@ -104,6 +106,7 @@ func load_save_data(data: Dictionary) -> void:
 	if typeof(discovered) == TYPE_ARRAY:
 		for id: Variant in discovered:
 			_discovered[StringName(str(id))] = true
+	loaded.emit()
 
 
 static func _is_supported_value(value: Variant) -> bool:

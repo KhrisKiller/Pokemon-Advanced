@@ -47,6 +47,7 @@ func _run() -> void:
 	_main.hud.message_box.close()
 
 	await _farm_demo()
+	await _kith_demo()
 
 	# Tour the areas through the real transition flow.
 	await _travel(&"village", &"from_farm")
@@ -56,6 +57,7 @@ func _run() -> void:
 	await _frames(10)
 	await _shot("06_village_plaza")
 	await _talk_to("Tamsin", "06b_talk_tamsin")
+	await _shop_demo()
 	await _travel(&"forest", &"from_farm")
 	await _shot("07_forest_arrival")
 	await _talk_to("Odile", "07b_talk_odile")
@@ -63,6 +65,8 @@ func _run() -> void:
 	_main.player.camera.reset_smoothing()
 	await _frames(10)
 	await _shot("08_forest_pond")
+
+	await _helper_demo()
 
 	_set_time(23 * 60 + 30)
 	await _frames(5)
@@ -109,6 +113,94 @@ func _farm_demo() -> void:
 	await _frames(5)
 	await _shot("16_sold")
 	_main.hud.message_box.close()
+
+
+## Befriends the Sprigmole on the farm (food, then a Bond Charm) and opens the party menu.
+func _kith_demo() -> void:
+	_main.session.player.inventory.add(&"pipweed", 3)  # the demo sold its harvest
+	var wild := _main.current_map.entities.get_node("WildSprigmole_38_25") as Interactable
+	await _face(wild, Vector2(18, 0), Vector2.LEFT)
+	await _shot("17_wild_kith_prompt")
+	_main.player.try_interact()
+	await _frames(5)
+	await _shot("18_wild_kith_fed")
+	_main.hud.message_box.close()
+	await _frames(5)
+	_main.player.try_interact()
+	await _frames(5)
+	await _shot("19_kith_bonded")
+	_main.hud.message_box.close()
+	await _frames(5)
+	var menu := _main.hud.kith_menu
+	_main.hud.open_kith_menu()
+	await _frames(3)
+	await _shot("20_kith_menu")
+	menu.choose()  # actions
+	menu.choose()  # feed
+	menu.select(menu.find_row("Pipweed"))
+	menu.choose()
+	await _frames(3)
+	await _shot("21_kith_fed")
+	menu.close_menu()
+	await _frames(3)
+
+
+func _shop_demo() -> void:
+	var pell := _main.current_map.entities.get_node("Pell") as Interactable
+	await _face(pell, Vector2(0, 18), Vector2.UP)
+	_main.player.try_interact()
+	await _frames(3)
+	var menu := _main.hud.shop_menu
+	menu.select(menu.find_row("Bluecap"))
+	menu.choose()
+	await _frames(3)
+	await _shot("06c_seed_shop")
+	menu.close_menu()
+	await _frames(3)
+
+
+## Bonds the pond Rillet, trusts it enough to help, and sleeps in the forest: it waters the farm.
+func _helper_demo() -> void:
+	var player := _main.session.player
+	player.inventory.add(&"bluecap", 2)
+	var wild := _main.current_map.entities.get_node("WildRillet_50_12") as Interactable
+	await _face(wild, Vector2(18, 0), Vector2.LEFT)
+	await _shot("08b_wild_rillet")
+	for step in 2:
+		_main.player.try_interact()
+		await _frames(3)
+		_main.hud.message_box.close()
+		await _frames(3)
+	var rillet := _main.session.kith.get_active()
+	for kith in _main.session.kith.get_members():
+		if kith.species_id == &"rillet":
+			rillet = kith
+	rillet.trust = 30  # several days of feeding, skipped for the tour
+	for i in 4:
+		var id := StringName("farm:%d,23" % (23 + i))
+		_main.session.farm.till(id)
+		_main.session.farm.plant(id, ContentDB.get_crop(&"pipweed"))
+	EventBus.sleep_requested.emit(null)
+	await get_tree().process_frame
+	while _main.is_transitioning():
+		await get_tree().process_frame
+	await _frames(3)
+	var box := _main.hud.message_box
+	while box.is_open() and not box.get_current_line().contains("watered"):
+		box.advance()
+	await _frames(3)
+	await _shot("08c_helper_watered")
+	box.close()
+	await _frames(3)
+
+
+func _face(target: Node2D, offset: Vector2, facing: Vector2) -> void:
+	_main.player.global_position = target.global_position + offset
+	_main.player.set_facing(facing)
+	_main.player.camera.reset_smoothing()
+	for i in 3:
+		await get_tree().physics_frame
+	await _frames(5)
 
 
 func _use_plot(plot_id: StringName) -> void:
