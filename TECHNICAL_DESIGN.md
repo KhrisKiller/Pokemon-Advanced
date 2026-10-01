@@ -27,18 +27,22 @@ game/                    ALL code and scenes, grouped by feature (script + scene
                          GameSession; NewGameConfig
   items/                 ItemData, ItemCatalog, Inventory
   farming/               CropData/CropCatalog, CropState, PlotState, FarmState, FarmActions, FarmPlot
-  economy/               Pricing, Shipping, ShippingCrate
+  economy/               Pricing, Shipping, ShippingCrate, ShopData/ShopOffer/ShopCatalog, Shop
+  kith/                  KithData/KithCatalog, KithConfig, KithState, KithRoster, KithCare, KithBonding,
+                         KithHelpers; world/WildKith
   characters/player/     Player controller
   characters/npc/        NpcData + Npc (placeholder NPCs)
   world/                 WorldMap, MapInfo/MapCatalog, MapTransition, maps, props, tilesets, day/night tint
-  ui/hud/                HUD, clock display, message box, prompt, location banner, screen fade
-  (creatures/ combat/ tactical/ dialogue/ quests/ progression/ audio/ are created by the phase that
+  ui/hud/                HUD, clock display, message box, prompt, location banner, screen fade, kith label
+  ui/menus/              ListMenu (generic modal list), ShopMenu, KithMenu
+  (combat/ tactical/ dialogue/ quests/ progression/ audio/ are created by the phase that
    implements them)
 data/                    Content as Godot Resources (.tres). No code.
-  config/                Tunable configs (time_config.tres, day_night_gradient.tres)
+  config/                Tunable configs (time_config, day_night_gradient, new_game, kith_config)
   maps/                  MapInfo per map + map_catalog.tres
   npcs/                  NpcData per NPC
   items/, crops/         ItemData / CropData + catalogs
+  kith/, shops/          KithData / ShopData + catalogs
 assets/                  Art and audio source files, grouped by kind
   placeholder/           Generated placeholder art (see tools/). Replaced during Phase 10.
 tests/                   Headless test runner, unit/ and integration/ tests, fixtures/saves/,
@@ -83,17 +87,17 @@ spikes/                  ISOLATED prototypes, never referenced by game/ (tactica
 | Name | File | Responsibility |
 | --- | --- | --- |
 | `EventBus` | `game/core/event_bus.gd` | Declares global signals only. No state, no logic. |
-| `ContentDB` | `game/core/content_db.gd` | **Read-only** content registry: items and crops by id, from catalog resources (export-safe, no folder scanning). Global because every system reads content, and content never changes at runtime. `validate()` checks cross-references. |
+| `ContentDB` | `game/core/content_db.gd` | **Read-only** content registry: items, crops, kith species and shops by id, from catalog resources (export-safe, no folder scanning). Global because every system reads content, and content never changes at runtime. `validate()` checks cross-references. |
 | `SaveService` | `game/core/save/save_service.gd` | Save slots on disk; provider registry; format upgrades. It has no game knowledge. Listed before `Clock` so it exists first. |
 | `Clock` | `game/core/time/clock.gd` | Owns the `GameTime`; advances it in real time; emits time signals; pause requests. |
 | `WorldState` | `game/core/world_state.gd` | Persistent world facts: typed flags and discovered locations. It is a global because story, NPCs, maps and (later) quests all read it. |
 
 Autoloads do **not** register themselves as save providers. `Main`, the composition root of a play
-session, registers `Clock`, `WorldState`, the session's providers (`PlayerState`, `FarmState`) and
-itself, so a stray instance (for example in a test) can never become a duplicate section.
+session, registers `Clock`, `WorldState`, the session's providers (`PlayerState`, `FarmState`,
+`KithRoster`) and itself, so a stray instance (for example in a test) can never become a duplicate section.
 
 **Mutable session state is not global.** `GameSession` (owned by `Main`) holds the player's
-belongings and the farm. Map nodes in the `session_aware` group receive `bind_session(session)` when
+belongings, the farm and the kith party (with its `KithConfig`). Map nodes in the `session_aware` group receive `bind_session(session)` when
 their map loads (dependency injection, no service locator).
 
 ## 5. Physics layers [implemented]
@@ -105,10 +109,10 @@ their map loads (dependency injection, no service locator).
 | 3 | `interactables` | `Interactable` areas (detected by the player's `InteractionProbe`) |
 | 4 | `npcs` | NPC bodies (blocks the player) |
 | 5 | `water` | Water tiles. **Separate from `world`** so swimming mounts can drop it from their mask. |
-| 6 | `kith` | [planned] Overworld kith |
+| 6 | `kith` | Wild kith bodies (Phase 4; block the player). Followers later. |
 | 7 | `triggers` | [planned] Map transitions, cutscene triggers, encounter zones |
 
-The player body's mask is `world + npcs + water`. Mounts change the mask (§10).
+The player body's mask is `world + npcs + water + kith`. Mounts change the mask (§10).
 
 ## 6. Implemented systems (Phase 1)
 
@@ -201,7 +205,9 @@ fade in → wake-up message. This is the single place where "end of day" hooks w
   memory is saved by `WorldState`) and emits `EventBus.conversation_requested(speaker, lines)`. The
   message box shows the speaker's name tag.
 - Placed by the map tool (`npc` marker): **Tamsin** in the village plaza, **Odile** at the forest
-  entrance. Both stand still.
+  entrance, **Pell** outside the general store (Phase 4). All stand still.
+- **Shopkeepers (Phase 4):** `NpcData.shop_id` set → interacting sets `met_<id>` and emits
+  `EventBus.shop_requested(shop_id, speaker)` instead of dialogue; the HUD opens its `ShopMenu`.
 - Deliberately **not** built: schedules, movement, relationships, gifts, quests, conditional
   dialogue. The NPC epic replaces the line lists with the data-driven dialogue system. Because the
   signal carries a speaker and lines, the HUD won't need to change.
@@ -217,12 +223,19 @@ fade in → wake-up message. This is the single place where "end of day" hooks w
   inventory anywhere.
 - `PlayerState` (pure): `inventory`, `money` (never negative), `selected_seed` (the next carried seed,
   cycled with **Q**). Save section `player_state`. A missing section applies `NewGameConfig`
-  (`data/config/new_game.tres`: 50 marks, 6 Pipweed, 3 Emberroot and 3 Bluecap seeds).
+  (`data/config/new_game.tres`: 50 marks, 6 Pipweed, 3 Emberroot and 3 Bluecap seeds, 3 Bond
+  Charms). Section v2 (Phase 4): loading a v1 section applies `NewGameConfig.upgrade_grants`
+  (`{"2": {"bond_charm": 3}}`) once, so older saves get what a new game now starts with.
 - **Economy (placeholder):** `Pricing.sell_price(item, qty)` = base value × quantity. This is the one
   place the future modifier stack plugs in. `Shipping.sell_all()` sells every carried `crop` item.
   The `ShippingCrate` by the farmhouse runs it **immediately** (not overnight) and reports what sold.
 - HUD: money under the clock, selected seed bottom-left, a bag panel on **I** (a modal that pauses
   time).
+- **Seed shop (Phase 4):** `ShopData` (`data/shops/<id>.tres`: id, name, greeting, `ShopOffer` list of
+  item id + price) in `shop_catalog.tres`. `Shop.buy(player, shop, item_id, qty, content)` is
+  all-or-nothing: unknown offer, not enough marks or no bag space change nothing. Prices are fixed and
+  provisional (Pipweed 20, Emberroot 40, Bluecap 30). No stock, no selling to shops, one shop.
+  `ContentDB.validate_shops()` checks offers.
 
 ### 6.7 Farming [implemented — Phase 3]
 
@@ -248,52 +261,78 @@ FarmPlot   (Interactable node)     presentation only: draws soil/wet/crop stage;
   follows them.
 - **Adding a crop:** a `CropData` `.tres`, a seed item and a produce item with the right tags, and
   catalog entries. `ContentDB.validate()` (in tests) catches broken references. No code changes.
-- **Deliberately not built:** tools (hoe/can), seasons and withering, weather, fertiliser, quality,
-  kith helpers, buying seeds.
+- **Helper hook (Phase 4):** `FarmState.apply_helper_action(action, limit) -> Array[plot_id]` is how
+  anything other than the player's button works the farm. `&"water"` waters dry, tilled plots with
+  a growing (not mature) crop, in stable plot-id order, up to `limit`. Kith helpers call it from the
+  daily tick; a sprinkler could call it too. Unknown actions warn and do nothing.
+- **Deliberately not built:** tools (hoe/can), seasons and withering, weather, fertiliser, quality.
 
-## 7. Creature data architecture [planned — Phase 4]
+## 7. Kith architecture [implemented — Phase 4 foundation; battle and tactical parts planned]
 
 ```
-CreatureData (Resource, data/creatures/<id>.tres) — immutable species definition
-  id: StringName, name, description, aspects: Array[StringName]
-  base_stats: StatBlock (vitality, might, focus, guard, will, speed)
-  traits: Array[TraitData], learnset: Array[LearnsetEntry], teachable_tags
-  maturation: Array[EvolutionRule]
-  habitat: HabitatInfo, rarity, bond_rate
-  diet: DietProfile (favourite/tolerated/disliked food tags)
-  breeding: BreedingInfo (group, egg_cycles)
-  utility: Array[StringName] (water, till, haul, glide, swim, burrow, light, forage)
-  mount_type: StringName (none/land/water/air/burrow)
-  tactical: TacticalProfile (role, move_class, move, min/max range, terrain_affinity, can_move_and_fire)
-  visual: CreatureVisual (sprite frames, palette, size class, portrait)
-
-CreatureInstance (RefCounted, saved) — one bonded or wild individual
-  uid, species_id, nickname, level, xp, potential: StatBlock, training: StatBlock,
-  trust, known_techniques, status, current_hp, wounded_days, flags
-  → derived stats computed by StatFormulas from species + instance (never stored)
-
-BattleCreatureState (RefCounted) — built from a CreatureInstance when a creature battle starts
-  stat stages, volatile status, technique uses; writes back HP/XP/trust at the end
-
-TacticalUnitState (RefCounted) — built from a CreatureInstance + TacticalProfile for a tactical battle
-  grid position, strength pips (derived from HP ratio), provisions, has_moved/has_acted, faction
-  → writes back wounds, XP and trust at the end
+KithData   (Resource, data/kith/<id>.tres)   species, never mutated at runtime
+  id, display_name, description, aspects, favourite_food_tags, liked_food_tags,
+  helper_abilities (e.g. &"water"), bond_calm_needed, sprite, ui_color
+  loves(item) / will_eat(item) / has_ability(id)
+KithConfig (Resource, data/config/kith_config.tres)   every tunable number (party size, Trust,
+  thresholds/labels, food gains, feeds per day, calm per food, bond item, helper Trust + limit)
+KithState  (RefCounted)    one owned individual: uid ("kith_0001", never reused), species_id,
+  nickname, trust, level/xp (unused until battles), fed_today, helper_actions_today,
+  bonded_day, origin (spawn id). Only ids and values; species rules are looked up, not copied.
+KithRoster (RefCounted, save section "kith")   the party: ordered members (max 6), active uid,
+  add_new / remove / move / set_active / set_nickname, start_new_day()
+KithCare     (static)   feeding from the one Inventory + Trust
+KithBonding  (static)   prototype wild bonding: food → calm → Bond Charm → KithRoster.add_new
+KithHelpers  (static)   daily helper work through FarmState.apply_helper_action
+WildKith     (Interactable node)   presentation: a wild kith in a map, forwards interact to KithBonding
+KithMenu / HUD label    presentation of the roster
 ```
 
-Rules: `CreatureData` is never mutated at runtime. The two combat states never reference each other.
-Both read aspects through the shared `AspectChart` resource. Adding a species = new `.tres` + art.
+- **Party = the roster.** There is no storage box yet; the party is every owned kith (max 6, from
+  config). It has an order and one active kith. It lives in `GameSession`, not in a map or the
+  Player node, so map changes don't touch it. Tactical units will be *built from* it, never stored
+  in it.
+- **Feeding** consumes exactly one item from the shared `Inventory`. Species diets are tags;
+  favourite → +8 Trust, liked → +3, one counted meal per kith per day (reset in the daily tick).
+  Refused food and a full kith consume nothing.
+- **Trust** is an int 0–`trust_max` (100) with labels by threshold (0 Unfamiliar, 25 Friendly,
+  50 Trusted, 75 Bonded). Shown in the party screen and the HUD.
+- **Bonding (prototype):** wild kith are placed by the map builder (`wild_kith` marker, spawn id
+  `"<map>:<x>,<y>"`). Calm and "already bonded" are `WorldState` flags (`kith_calm:<spawn>`,
+  `kith_bonded:<spawn>`), so they persist and a spot bonds once. `WildKith` refreshes on
+  `WorldState.flag_changed` and `WorldState.loaded`.
+- **Helpers in the daily tick:** `Main.run_day_transition`: `Clock.end_day()` →
+  `farm.advance_day()` → `kith.start_new_day()` → `KithHelpers.run_daily()` → auto-save. A kith
+  helps if its species has the ability, its Trust ≥ `watering_min_trust` (25) and it has actions
+  left today (`watering_daily_limit`, 3 plots). Work happens in the morning, wherever the player is;
+  the wake-up message reports it ("Rillet watered 3 plots."). No input simulation, no pathing.
+- **Validation:** `ContentDB.validate_kith()` checks ids, name/sprite, that each diet matches at least
+  one food item, and that abilities are known (`ContentDB.KNOWN_ABILITIES`).
 
-**Content registry** [planned]: `ContentDB` autoload scans `data/<kind>/` at start-up and indexes
-resources by `id` (handling `.remap` in exported builds). Gameplay looks up content with
-`ContentDB.get_creature(&"loamox")`, never by path.
+**Planned extensions (not built; how they attach):**
+
+```
+KithData   += base_stats: StatBlock, traits, learnset, maturation: Array[EvolutionRule], habitat,
+              bond_rate, breeding, mount_type, tactical: TacticalProfile, visual
+KithState  += potential/training: StatBlock, known_techniques, current_hp, status, wounded_days
+              → derived stats via StatFormulas (never stored); KithState section version 2
+BattleCreatureState (RefCounted) — built from a KithState when a creature battle starts
+  stat stages, volatile status, technique uses; writes back HP/XP/Trust at the end
+TacticalUnitState (RefCounted) — built from a KithState + TacticalProfile for a tactical battle
+  grid position, strength pips, provisions; writes back wounds, XP and Trust at the end
+```
+
+Rules: `KithData` is never mutated at runtime. The two combat states never reference each other.
+Both read aspects through a shared `AspectChart` resource. Adding a species = new `.tres` + art +
+catalog entry.
 
 ## 8. Other planned system architecture
 
 | System | Core types | Notes |
 | --- | --- | --- |
 | Inventory | ✅ see §6.6. Later: item use effects, chests, shop stock | Tags drive food, crafting and selling |
-| Farming | ✅ MVP, see §6.7. Later: seasons, tools, kith helpers, fertiliser | Growth only in the daily tick |
-| Economy | 🟡 `Pricing` + `Shipping` (see §6.6). Later: `PriceModifier` stack (season, region, war tension, relationship), vendors as data (`ShopData`), buying | One pricing entry point already exists |
+| Farming | ✅ MVP, see §6.7. Later: seasons, tools, more helper actions, fertiliser | Growth only in the daily tick |
+| Economy | 🟡 `Pricing` + `Shipping` + `Shop.buy` (see §6.6). Later: `PriceModifier` stack (season, region, war tension, relationship), stock, selling to shops | One pricing entry point already exists |
 | Creature battle | Turn-state machine (`BattleController`) over `BattleCreatureState`s; UI separate; actions as command objects | Commands keep it replayable and future multiplayer-friendly |
 | Tactical | `TacticalMapData` (grid, terrain ids, objectives, deployment zones), `TerrainData` (defence, move cost per class), `TacticalBattleState`, `Pathfinder` (Dijkstra over move costs), `TacticalAI` (utility scoring) | Its own scene; returns a `TacticalResult` to the world |
 | NPCs | `NpcData` (identity, gift tastes, schedule sets), `ScheduleEntry` (day/time/location), overrides with `Condition`s | Conditions read `WorldState` |
@@ -319,11 +358,15 @@ resources by `id` (handling `.remap` in exported builds). Gameplay looks up cont
   and older versions of its own section. Values must be JSON-safe. Only ids and values are saved,
   never node or resource paths.
 - **Sections today:** `clock` (day index, minute), `world` (flags, discovered locations),
-  `player_state` (money, inventory slots, selected seed), `farm` (every plot: tilled, watered, crop id,
-  days grown, times harvested), `player` (map id, position, facing). They load in that order; the
+  `player_state` (money, inventory slots, selected seed; v2), `farm` (every plot: tilled, watered,
+  crop id, days grown, times harvested), `kith` (next uid, active uid, members with every
+  `KithState` field), `player` (map id, position, facing). They load in that order; the
   player comes last because it may change the map. Adding sections needed no format change. A save
   from before farming (`tests/fixtures/saves/v2_phase2_before_farming.json`, written by the Phase 2
-  code) loads with new-game belongings and an untouched farm.
+  code) loads with new-game belongings and an untouched farm. A save from before kith
+  (`v2_phase3_before_kith.json`, written by the Phase 3 code) loads with everything intact, an empty
+  party, and 3 Bond Charms granted once through the `player_state` v1 → v2 upgrade. Unknown species
+  in a saved party are skipped with a warning; their ids are still never reused.
 - **Two versioning layers:**
   1. *File format*: `SaveMigrations.migrate()` runs steps v1 → v2 → …. v1 (sections at the top level)
      was the first Phase 2 format; v1 → v2 moved sections under `sections` and added `meta`.
@@ -359,17 +402,21 @@ tactical system uses the same movement class vocabulary for terrain costs.
   instantiate real scenes headlessly: the full farming loop through the real interact button and sleep
   flow, movement against collision, interaction, sleep flow, save/load
   through `Main`, migration from a real v1 file, map validation (exit graph and on-foot
-  reachability), map transitions (including real walking through an exit), and NPCs.
+  reachability), map transitions (including real walking through an exit), NPCs, and (Phase 4)
+  wild-kith bonding, the party menu, Pell's shop, the watering helper while the player is in
+  another map, and loading a real Phase 3 save.
 - **Restart test:** `tests/persistence/run_restart_test.sh` saves in one Godot process (in the village,
-  day 3) and verifies in a fresh process. It fails on any check or engine error.
+  day 3, with a worked farm and a bonded, fed, renamed kith plus an active second kith) and verifies
+  in a fresh process. It fails on any check or engine error.
 - **Save fixtures:** `tests/fixtures/saves/*.json` are real files written by older formats. Every
   fixture must upgrade and load.
 - CI: `.github/workflows/tests.yml` installs the pinned Godot, imports, runs the suite, the restart
   test and the spike tests.
 - Visual check: `tools/capture_screenshots.tscn` plays a scripted tour of the real game (farm, sign,
-  village, Tamsin, forest, Odile, night) and saves screenshots. It needs a display (`xvfb-run` on
+  village, Tamsin, Pell's shop, forest, Odile, bonding, party menu, watering helper, night) and
+  saves screenshots. It needs a display (`xvfb-run` on
   servers) and uses its own save directory.
-- Current suite: 158 tests (83 unit, 75 integration) + the restart test + 30 spike tests.
+- Current suite: 212 tests (128 unit, 84 integration) + the restart test + 30 spike tests.
 
 ## 12. Multiplayer readiness (not implemented)
 
@@ -408,3 +455,12 @@ discrete points (day transitions, battle turns).
 | D16 | Session state (`GameSession`) owned by `Main` and injected | More autoloads (`Farm`, `Player`) | Keeps mutable state out of globals; tests build sessions freely; future multiplayer (one session per player) |
 | D17 | One context-sensitive interact button for farming | Tool hotbar (hoe, can, seeds) | Smallest coherent loop; tools come with farming depth later |
 | D18 | Shipping crate pays immediately | Overnight shipping (Stardew-style) | Makes crop → value → money visible for the MVP; overnight is a later tuning choice |
+| D19 | `KithData` (species) / `KithState` (individual) instead of the planned `CreatureData` / `CreatureInstance` names; no stats in Phase 4 | Build the full planned schema now | Phase 4 forbids battle stats; fields are added by the phase that uses them, with a section version bump |
+| D20 | Party of 6 = every owned kith (no storage yet) | Retinue of 4 + paddock (earlier design) | Owner's Phase 4 brief: "up to 6"; storage comes when there are more kith than slots |
+| D21 | Trust 0–100 with 4 labels | 0–255 shown as hearts (earlier design) | Owner's Phase 4 brief; readable numbers; provisional |
+| D22 | Prototype bonding without battles: food → calm (WorldState flag) → Bond Charm always works | Wait for the battle phase | Lets the farm → food → kith loop exist now; the battle phase adds the chance formula on top of calm |
+| D23 | Helpers act in the daily tick through `FarmState.apply_helper_action` | Kith walking to plots; fake player input | Map-independent, deterministic, testable; the same hook serves sprinklers later |
+| D24 | Helper work happens in the morning (after growth, before the save) | Evening/overnight | Watered soil at wake-up is visible; crops then grow at the next day transition |
+| D25 | Older saves get new starting items via `NewGameConfig.upgrade_grants` keyed by section version | Leave old saves without Bond Charms | Pre-Phase-4 players couldn't bond otherwise (charms aren't sold yet) |
+| D26 | One seed shop, fixed prices, buy one at a time | Shop with stock, selling, quantity picker | Smallest version that keeps the loop going (seeds ran out in Phase 3) |
+| D27 | Menus built in code from a generic `ListMenu` (text rows) | Bespoke scenes per menu | Two menus now, more later; consistent keys and pausing; real UI theme comes with final art |

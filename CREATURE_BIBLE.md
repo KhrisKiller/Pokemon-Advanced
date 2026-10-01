@@ -1,8 +1,8 @@
 # MONSERA — Creature Bible (Kith)
 
 > Design canon for kith. Data schema lives in `TECHNICAL_DESIGN.md` §7; content lives in
-> `data/creatures/*.tres` (not yet created — Phase 4). Numbers here are **starting values** to be
-> tuned by playtesting.
+> `data/kith/*.tres` (Phase 4: 4 species, identity/diet/helper data only — no stats yet). Numbers here
+> are **starting values** to be tuned by playtesting.
 
 ## 1. Design rules for every kith
 
@@ -72,13 +72,22 @@ Levels go from 1 to 50. *Potential* is a 0–10 hidden per-individual value (bre
 - **Calm** rises when you offer food the kith likes before/during the encounter. So farming feeds
   collecting, and a pacifist can bond many kith without fighting.
 - Some kith (guardians, story kith) only bond through quests or high trust.
+- **Phase 4 prototype (no battles yet):** a wild kith stands in the map. Offering food it eats adds
+  calm (favourite +2, liked +1); at its species' `bond_calm_needed` it accepts a Bond Charm and joins
+  the party with Trust 10. Each wild spot bonds once. The battle phase replaces "always succeeds"
+  with the chance formula above; calm keeps its meaning.
 
 ## 6. Trust, food and diet
 
-- **Trust** 0–255, shown as 5 hearts. Raised by feeding preferred food, working together, winning,
-  grooming at the paddock; lowered by fainting, overwork, forced labour, hunger.
+- **Trust** 0–100 (provisional, Phase 4; was 0–255 with hearts), shown as a number and a label:
+  0–24 *Unfamiliar*, 25–49 *Friendly*, 50–74 *Trusted*, 75–100 *Bonded*. Raised by feeding preferred
+  food (Phase 4: favourite +8, liked +3, one meal per day), later also by working together, winning
+  and grooming; lowered by fainting, overwork, forced labour, hunger (not implemented).
+- Helpers need Trust: a kith only does farm work once *Friendly* (Phase 4: watering at Trust ≥ 25).
 - **Diet** per species: `favourite` food tags (e.g. *root*, *berry*, *fish*, *mineral*), `tolerated`,
-  `disliked`. Food items carry tags, so new foods need no code.
+  `disliked`. Food items carry tags, so new foods need no code. Phase 4 has favourite and liked
+  (= tolerated) tags; anything else is refused and not consumed. Current food tags: `food` (any
+  edible), `root`, `spicy`, `fungus`.
 - Food effects (kept simple): trust, small permanent training points, or a temporary *prepared* buff
   (one per day) usable in the next battle or tactical deployment.
 - **No starvation.** Unfed kith lose trust slowly and work less; they never die.
@@ -98,7 +107,7 @@ Implementation is post-slice.
 
 | Utility | Overworld effect | Gate it opens |
 | --- | --- | --- |
-| **Water** | Waters a 3×1 line of plots | — (farm speed) |
+| **Water** | Waters growing plots each morning (Phase 4: up to 3 per day, Trust ≥ 25) | — (farm speed) |
 | **Till** | Tills soil | — (farm speed) |
 | **Haul** | Moves heavy logs/boulders; carries extra goods | Blocked paths |
 | **Burrow** | Digs through soft earth | Tunnels, buried items |
@@ -132,7 +141,16 @@ attacking consume them; at 0 the unit is *Hungry* (−move, −attack). Support 
 
 ## 11. Prototype roster (12 kith)
 
-Status of every entry: **design only**. ✦ = planned to appear in the vertical slice.
+Status: **design only**, except Sprigmole, Rillet, Cindercoot and Bramblehog, which have Phase 4
+data files (identity, diet, helper ability, placeholder sprite; no stats). ✦ = planned to appear in
+the vertical slice.
+
+| Phase 4 data | Loves | Also eats | Helper | Calm needed | Found |
+| --- | --- | --- | --- | --- | --- |
+| Sprigmole | root | — | — (till later) | 2 | Wrenfield farm |
+| Rillet | fungus | any food | water | 2 | Mirelight Pond |
+| Cindercoot | spicy | — | — | 2 | Whisperwood, south bridge |
+| Bramblehog | — | any food | — | 1 | Whisperwood clearing |
 
 | # | Name | Aspects | Concept (the twist) | Non-combat role | Mount | Tactical role | Matures |
 | - | --- | --- | --- | --- | --- | --- | --- |

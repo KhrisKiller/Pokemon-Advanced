@@ -103,7 +103,7 @@ Full design in `CREATURE_BIBLE.md`. Summary:
   (friendship), a **diet**, **maturation** (evolution) paths, and utility roles.
 - The same kith exists in **creature battles**, **tactical battles** and the **overworld** (farm helper,
   mount, exploration tool) through separate runtime views of the same data.
-- Up to 4 kith travel with you (your **retinue**); the rest live in the farm's **paddock**.
+- Up to 6 kith travel with you (your **party**; provisional, D20); storage for the rest comes later.
 
 ## 7. Two combat systems
 
@@ -115,7 +115,7 @@ Full design in `CREATURE_BIBLE.md`. Summary:
 | Shares with the other | Kith data, aspect chart, stats (derived differently) | Same |
 | Consequence | XP, trust, bonding, items | Territory, war state, wounded kith, reputation, prices |
 
-They are **separate systems** reading the same `CreatureData` through different adapters
+They are **separate systems** reading the same kith data (`KithData` + `KithState`) through different adapters
 (`BattleCreatureState`, `TacticalUnitState`). See `TECHNICAL_DESIGN.md` §7.
 
 ## 8. War
@@ -217,7 +217,10 @@ unrestricted.
 bonding and Bond Charm; the names Sera, Lowmere Vale, Aurelian Crown, Thornwood Compact and the
 Greying; the 6:00–2:00 day cycle and ~14 real minutes per day; the current balance formulas; the
 current aspect chart; the Phase 3 crops (Pipweed, Emberroot, Bluecap), their values and growth
-times, and selling at the shipping crate immediately (not overnight).
+times, and selling at the shipping crate immediately (not overnight); the Phase 4 kith (Sprigmole,
+Rillet, Cindercoot, Bramblehog) and their diets; Trust 0–100 with the labels Unfamiliar / Friendly /
+Trusted / Bonded and its gains; bonding without a battle (food → calm → Bond Charm); seed prices
+(20 / 40 / 30 marks); the watering helper's rule (Trust 25, 3 plots per day).
 
 ## 17. Heritage from Design.pdf
 

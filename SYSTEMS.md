@@ -14,19 +14,19 @@
 | Map transitions | Exits, spawn by id, fade, state preserved | ✅ | `game/world/map_transition.gd`, `game/main/` | `data/maps/map_catalog.tres` |
 | Interaction | Interactables and probe, prompts | ✅ | `game/core/interaction/` | per-prop exports |
 | Messages | Modal text queue with speaker name tag | 🟡 placeholder for Dialogue | `game/ui/hud/` | — |
-| Day transition | Sleep and curfew → next morning (home from any map) → crop growth → auto-save | ✅ (no world-tick hook yet) | `game/main/main.gd` | — |
-| Save / load | Persist everything | ✅ v1 (time, world, player); migrations; restart-tested | `game/core/save/` | `tests/fixtures/saves/` |
-| Content DB | Look up content by id | ✅ items + crops (maps/NPCs still separate) | `game/core/content_db.gd` | `data/items/`, `data/crops/` |
+| Day transition | Sleep and curfew → next morning (home from any map) → crop growth → kith morning (reset, helpers) → auto-save | ✅ (no world-tick hook yet) | `game/main/main.gd` | — |
+| Save / load | Persist everything | ✅ time, world, belongings, farm, kith, player; migrations; restart-tested | `game/core/save/` | `tests/fixtures/saves/` |
+| Content DB | Look up content by id | ✅ items, crops, kith species, shops (maps/NPCs still separate) | `game/core/content_db.gd` | `data/items/`, `data/crops/`, `data/kith/`, `data/shops/` |
 | Inventory | Items, stacks, tags, money | ✅ | `game/items/`, `game/characters/player/player_state.gd` | `data/items/`, `data/config/new_game.tres` |
-| Farming | Plots, crops, growth, harvest | ✅ MVP (no tools/seasons yet) | `game/farming/` | `data/crops/` |
-| Kith (creatures) | Species data, instances, trust, diet, maturation | 📐 | — | `data/creatures/` |
+| Farming | Plots, crops, growth, harvest, helper actions | ✅ MVP (no tools/seasons yet) | `game/farming/` | `data/crops/` |
+| Kith (creatures) | Species vs individuals, party, Trust, diet, bonding, helpers | 🟡 Phase 4 foundation (no stats, battles, maturation) | `game/kith/` | `data/kith/`, `data/config/kith_config.tres` |
 | Creature battle | 1v1 turn-based battles, bonding | 📐 | — | `data/moves/` |
 | Tactical battle | Grid warfare with kith units | 📐 production · 🧪 isolated spike in `spikes/tactical/` awaiting evaluation | — | `data/maps/tactical/` |
 | Exploration gates | Utility/mount-based obstacles | 📐 | — | map data |
-| NPCs & schedules | Identity, talk (now); routines, relationships, gifts (later) | 🟡 2 placeholder NPCs, no schedules | `game/characters/npc/` | `data/npcs/` |
+| NPCs & schedules | Identity, talk, shopkeepers (now); routines, relationships, gifts (later) | 🟡 3 placeholder NPCs (Pell runs a shop), no schedules | `game/characters/npc/` | `data/npcs/` |
 | Dialogue | Data-driven conversations with conditions | 📐 | — | `data/dialogue/` |
 | Quests | Stages, conditions, rewards | 📐 | — | `data/quests/` |
-| Economy | Prices, shops, modifier stack | 🟡 base-value selling via shipping crate | `game/economy/` | `data/items/` |
+| Economy | Prices, shops, modifier stack | 🟡 base-value selling via shipping crate; one seed shop with fixed prices | `game/economy/` | `data/items/`, `data/shops/` |
 | Callings | Domain progression without classes | 📐 | — | — |
 | World state & war | Flags, tension, factions, daily world tick | 🟡 flags + discovered locations (saved); war not started | `game/core/world_state.gd` | `data/factions/` |
 | Audio | Music by time/place, SFX | ⏳ | — | — |
@@ -78,14 +78,25 @@ farm plots, doors/map transitions.
 cycles) → water → inspect → harvest. Crops are data (growth days, regrow, produce, stage art). Growth
 happens only in the day transition, and only if the crop was watered that day. Harvests go into the
 shared bag; the shipping crate sells crops for money. Everything is saved.
-*Not yet:* tools, seasons/withering, weather, buying seeds, kith helpers.
+Kith helpers work through `FarmState.apply_helper_action(action, limit)`, called by the daily
+simulation, never by fake input (Phase 4: `water`).
+*Not yet:* tools, seasons/withering, weather.
 *Feel (Phase 3):* the loop is coherent but manual. Every plot is walk-up-and-press, once per plot per
 day, which is fine at ~5 plots and tedious at 20. Seeds run out (no seed shop), so the loop ends
 unless you grow Bluecap, which regrows. Mature crops are hard to tell apart from growing ones in the
-placeholder art.
+placeholder art. (Phase 4 adds the seed shop and the watering helper, which address the first two.)
 
-### Kith 📐
-See `CREATURE_BIBLE.md`. Retinue of 4, paddock for the rest. Trust and diet from food tags.
+### Kith 🟡 (Phase 4 foundation)
+Species are `KithData` (`data/kith/`); each owned kith is a `KithState` with a unique uid, nickname,
+Trust 0–100 and daily state. The party (`KithRoster`, max 6, one active) is saved in section `kith`
+and doesn't care which map is loaded. Wild kith stand in the maps (`WildKith`): offer food it eats
+until it is calm, then a Bond Charm, and it joins the party; the spot stays empty (WorldState flag).
+Feeding uses the one inventory: one item, Trust +8 (loved) or +3 (liked), once per kith per day.
+Helper abilities run in the daily tick: a Rillet with Trust ≥ 25 waters up to 3 growing plots each
+morning, wherever the player is. Party screen on **K**. All numbers are in `kith_config.tres`.
+*Not yet:* stats, techniques, battles, maturation, storage beyond 6, followers, tactical units.
+*Feel (Phase 4, automated runs only):* bonding needs food, and food needs a harvest, so the first
+kith comes after a few in-game days of farming; Trust ≥ 25 for watering takes two favourite meals.
 
 ### Creature battle 📐
 1v1, speed order, 4 techniques with limited uses, switching, items, bond attempts, flee.
@@ -102,6 +113,8 @@ Weekly schedules with condition overrides (season, weather, festival, war phase)
 
 ### Economy 🟡
 Now: `Pricing.sell_price` = base value; the shipping crate sells every carried crop immediately.
+Pell's seed shop (`ShopData` in `data/shops/`, opened by talking to an NPC with `shop_id`) sells the
+three seeds at fixed prices, one at a time, with the same money and bag (`Shop.buy`, all-or-nothing).
 Planned: base value × modifier stack; shops sell and buy from data lists; overnight shipping is still
 an open choice (D18); war tension modifies specific item tags (e.g. rations +50 %).
 

@@ -13,11 +13,12 @@ how much you fight, is up to you.
 
 ## Status
 
-**Phase 3: basic farming MVP, complete.** Till, plant, water and harvest three crops on the farm;
-crops grow overnight when watered; sell your harvest for money at the shipping crate. Walk between
-the farm, the village and the forest, talk to two placeholder NPCs, sleep to auto-save, and continue
-after a restart. The isolated tactical prototype (`spikes/tactical/`, v0.2) is waiting for a
-playtest. See [ROADMAP.md](ROADMAP.md).
+**Phase 4: kith foundation, complete.** Farm three crops, sell the harvest and buy more seeds from
+Pell in the village. Offer food to the wild kith on the farm and in Whisperwood until they're calm,
+then a Bond Charm, and they join your party (up to 6). Feed them to raise Trust; a trusted Rillet
+waters your crops every morning, wherever you are. Sleep to auto-save and continue after a restart.
+The isolated tactical prototype (`spikes/tactical/`, v0.2) is waiting for a playtest. See
+[ROADMAP.md](ROADMAP.md).
 
 ## Run it
 
@@ -30,6 +31,7 @@ godot --headless --path . res://tests/test_runner.tscn    # tests
 
 Controls: **WASD/arrows/left stick** move · **E/Space/gamepad A** interact and advance text
 (on a plot: till → plant → water → harvest) · **Q/LB** switch seed · **I/Y** bag ·
+**K/X** kith party (↑/↓ select, E choose, Esc back) ·
 debug builds: **T** skip one hour, **F5** quicksave, **F9** quickload. The game continues from your
 save automatically; delete `user://saves/` to start over.
 

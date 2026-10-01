@@ -11,8 +11,8 @@
 | 1 | Basic Godot project | Project boots; player walks a test map with camera, interaction and a day clock; tests run in CI | ✅ |
 | 2 | Player & world | Save/load across restarts with a tested migration; transitions between farm, village and forest blockouts; 2 placeholder NPCs; tactical spike isolated | ✅ |
 | 3 | Basic farming | Till → plant → water → sleep → grow → harvest → sell loop, with saves (restart-tested); tactical spike v0.2 isolated | ✅ |
-| 4 | Basic creature system | Kith data, instances, retinue, feeding/trust, one utility action | ⏳ next (needs owner approval) |
-| 5 | Creature battle | Wild 1v1 battle + bonding from an overworld encounter | ⏳ |
+| 4 | Basic creature system | Kith species data vs individuals, party of 6, feeding/Trust, prototype bonding, one helper ability (watering) in the daily tick, seed shop; saves (restart- and migration-tested) | ✅ |
+| 5 | Creature battle | Wild 1v1 battle + bonding from an overworld encounter | ⏳ next (needs owner approval) |
 | 6 | Exploration | Utility gates, Loamox haul + mount, Sunken Kiln dungeon | ⏳ |
 | 7 | Basic tactical combat | One tactical battle playable end to end, win or lose | ⏳ |
 | 8 | Connect systems | Rations→provisions, war tension→prices/dialogue, wounds→farm rest, callings | ⏳ |
@@ -68,6 +68,7 @@ evaluation and decides how Phase 7 is scoped.
 - Feature: Content DB
   - [x] `ContentDB` autoload: items and crops by id from catalog resources (no folder scanning, so no `.remap` issues) (Phase 3)
   - [x] `ContentDB.validate()`: duplicate ids, missing seed/produce references, missing art (runs in tests) (Phase 3)
+  - [x] Kith species and shops through `ContentDB`; `validate()` checks diets, abilities and shop offers (Phase 4)
   - [ ] Maps and NPCs through `ContentDB` too (maps currently use `MapCatalog` on `Main`)
 - Feature: Condition/Effect vocabulary
   - [ ] Base `Condition`/`Effect` resources + 5 common ones
@@ -85,7 +86,8 @@ evaluation and decides how Phase 7 is scoped.
 
 ### Milestone: Save coverage (Phases 3–8)
 - [x] Providers: inventory + money + selected seed (`player_state`), farm plots (`farm`) (Phase 3)
-- [ ] Providers: kith instances, NPC relationships, quests, war state, decisions
+- [x] Provider: kith party (`kith`); `player_state` section v2 grants Bond Charms to older saves; real Phase 3 fixture (Phase 4)
+- [ ] Providers: NPC relationships, quests, war state, decisions
 
 ## EPIC: WORLD
 
@@ -116,24 +118,35 @@ evaluation and decides how Phase 7 is scoped.
 - [x] Tests: growth day by day, watering, maturity, harvest, regrow, bag, selling, persistence, growth while away
 - [ ] Tools (hoe, watering can) + hotbar — with farming depth
 - [ ] Seasons: planting seasons and withering at season change
-- [ ] Buying seeds (seeds currently only come from the new-game kit)
+- [x] Buying seeds from Pell's seed shop (Phase 4)
 ### Milestone: Farming × systems (Phase 8)
-- [ ] Creature food integration (crops tagged as kith food)
+- [x] Creature food integration: crops carry `food` + diet tags (`root`, `spicy`, `fungus`) (Phase 4)
 - [ ] Cooking station: crop → ration (tactical provisions)
-- [ ] Kith utility: Rillet waters 3×1, Sprigmole tills 3×1
+- [x] Kith utility: Rillet waters up to 3 plots each morning through `FarmState.apply_helper_action` (Phase 4)
+- [ ] More helper abilities (Sprigmole tills, …) — same hook, new ability id
 
 ## EPIC: CREATURES
 
-### Milestone: Kith data (Phase 4)
-- [ ] `CreatureData`, `StatBlock`, `TacticalProfile`, `DietProfile`, `EvolutionRule` resources
-- [ ] `AspectChart` resource + tests
-- [ ] `StatFormulas` + tests
-- [ ] 12 species data files (placeholder visuals); 6 fully tuned
-- [ ] `CreatureInstance` + save provider
-### Milestone: Kith in the world (Phase 4)
-- [ ] Retinue (4) + paddock storage
+### Milestone: Kith foundation (Phase 4) ✅
+- [x] `KithData` (species: id, name, aspects, diet tags, helper abilities, calm needed, sprite) in `data/kith/` + `KithCatalog`
+- [x] `KithState` (individual: unique uid, species id, nickname, Trust, level/xp placeholders, daily state, origin)
+- [x] `KithRoster` party (max 6, order, active kith, nickname) + save provider `kith`; independent of tactical units
+- [x] `KithConfig` tunables (party size, Trust thresholds/labels, food gains, helper Trust + daily limit)
+- [x] 4 prototype species: Bramblehog (eats anything), Sprigmole (roots), Cindercoot (spicy), Rillet (fungus, waters)
+- [x] Feeding from the one inventory (`KithCare`): consumes one item, Trust +8/+3, one feeding per day, refusals keep the item
+- [x] Trust 0–100 with labels Unfamiliar / Friendly / Trusted / Bonded (provisional)
+- [x] Prototype bonding (`KithBonding`): offer liked food until calm → Bond Charm → new `KithState`; wild spot remembered in `WorldState`
+- [x] Wild kith in the maps (`WildKith`, map-builder marker `wild_kith`): Sprigmole on the farm; Rillet, Bramblehog, Cindercoot in Whisperwood
+- [x] Watering helper (`KithHelpers`) in the day transition, any map, Trust ≥ 25, ≤ 3 plots/day
+- [x] Party screen on **K** (inspect, feed, set active, rename) + HUD active-kith label
+- [x] Tests: data/validation, state, party, feeding, bonding, helper rules, in-game flows, save/restart, Phase 3 save migration
+### Milestone: Kith data for battles (Phase 5+)
+- [ ] Stats (`StatBlock`), `AspectChart` + tests, `StatFormulas` + tests — added to `KithData` by the battle phase
+- [ ] `TacticalProfile`, `EvolutionRule` resources
+- [ ] More species (target 12 for the slice); 6 fully tuned
+### Milestone: Kith in the world (later)
+- [ ] Storage beyond the party (paddock)
 - [ ] Follower kith in the overworld
-- [ ] Feeding → trust; diet tags
 - [ ] Starter selection at Warden Odile's
 ### Milestone: Maturation & breeding (post-slice)
 - [ ] Evolution rules evaluated after level-up/feeding/day tick
@@ -143,7 +156,7 @@ evaluation and decides how Phase 7 is scoped.
 
 ### Milestone: Battle MVP (Phase 5)
 - [ ] `TechniqueData` resources (8–12 techniques)
-- [ ] `BattleCreatureState` adapter from `CreatureInstance`
+- [ ] `BattleCreatureState` adapter from `KithState`
 - [ ] Turn state machine: choose → order by speed → resolve → end of turn → check end
 - [ ] Damage formula with aspect chart, crits, variance (seeded RNG) + tests
 - [ ] 5 status effects + tests
@@ -169,7 +182,7 @@ evaluation and decides how Phase 7 is scoped.
 ### Milestone: Tactical prototype (Phase 7)
 - [ ] `TacticalMapData`, `TerrainData` (defence, move costs per class)
 - [ ] Grid rendering, cursor, camera
-- [ ] `TacticalUnitState` adapter from `CreatureInstance` + `TacticalProfile`
+- [ ] `TacticalUnitState` adapter from `KithState` + `TacticalProfile`
 - [ ] Pathfinding (Dijkstra over costs) + reachable-tile highlight + tests
 - [ ] Attack ranges (melee, ranged min/max, no move-and-fire) + counterattacks
 - [ ] Tactical damage formula (strength pips, terrain defence, aspect chart) + tests
@@ -199,6 +212,7 @@ evaluation and decides how Phase 7 is scoped.
 ### Milestone: NPC MVP (Phase 2 placeholders → Phase 8 schedules)
 - [x] Minimal NPC architecture: `NpcData` + `Npc` interactable (identity, position, talk, placeholder lines) (Phase 2)
 - [x] 2 placeholder NPCs: Tamsin (village), Odile (forest); "met" remembered via world flag (Phase 2)
+- [x] Shopkeeper NPCs: `NpcData.shop_id` opens a shop instead of dialogue (Pell, Phase 4)
 - [ ] `NpcData` for the remaining slice NPCs
 - [ ] Data-driven dialogue with conditions (replaces the placeholder line lists)
 - [ ] Schedules (day/time → location) with world-state overrides
@@ -212,7 +226,8 @@ evaluation and decides how Phase 7 is scoped.
 - [x] Money + HUD (Phase 3)
 - [x] `Pricing.sell_price` (base value) + `Shipping.sell_all` + placeholder shipping crate (Phase 3)
 - [ ] Price modifier stack (season modifier first) + tests
-- [ ] General store (Pell): buy seeds/charms, sell goods
+- [x] Seed shop (Pell): `ShopData` offers + `Shop.buy`, fixed provisional prices, buy one at a time (Phase 4)
+- [ ] General store: charms and goods, selling to shops, stock
 ### Milestone: Reactive economy (Phase 8)
 - [ ] War tension modifiers by item tag
 - [ ] Contracts (militia buys rations)
@@ -243,7 +258,8 @@ evaluation and decides how Phase 7 is scoped.
 - [x] Location banner on map change; speaker name tag in the message box (Phase 2)
 - [x] Money display, selected-seed display, bag panel on **I** (pauses time) (Phase 3)
 - [ ] Title screen (continue / new game) and pause menu (resume, save, settings, quit) — not in the Phase 3 scope; still open
-- [ ] Hotbar (with tools), kith party screen (Phase 4), battle UI (Phase 5), tactical UI (Phase 7)
+- [x] Generic modal `ListMenu` (pauses time; ↑/↓, E, Esc); shop menu; kith party screen on **K**; active-kith HUD label (Phase 4)
+- [ ] Hotbar (with tools), battle UI (Phase 5), tactical UI (Phase 7)
 - [ ] Pixel font + UI theme resource (Phase 10 at latest)
 - [ ] Controller glyphs
 
